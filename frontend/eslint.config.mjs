@@ -1,61 +1,29 @@
 import js from "@eslint/js";
 import globals from "globals";
+import svelte from "eslint-plugin-svelte";
+import ts from "typescript-eslint";
+import svelteConfig from "./svelte.config.js";
 
-// The current app uses classic scripts loaded into one shared browser scope.
-const shared = Object.fromEntries(
-  [
-    "pointsControl",
-    "selectionPoints",
-    "deletePointControl",
-    "L",
-    "map",
-    "serverURL",
-    "accessState",
-    "pendingPointWrites",
-    "renderAccess",
-    "refreshAccess",
-    "pointWrite",
-    "apiErrorMessage",
-    "pointsMarkers",
-    "addPointToLayer",
-    "showPointsRelatedControls",
-    "hidePointsRelatedControls",
-    "roadsMarkers",
-    "showRoadsRelatedControls",
-    "hideRoadsRelatedControls",
-    "polygonsMarkers",
-    "showPolygonsRelatedControls",
-    "hidePolygonsRelatedControls",
-    "inSelectionMode",
-    "selectedMarkers",
-    "distanceLayerGroup",
-    "renderSelectedPointsList",
-    "pointToDelete",
-    "addPointMode",
-    "newMarkers",
-    "renderNewPointInList",
-    "setDraftName",
-    "setDraftDisabled",
-  ].map((name) => [name, "writable"]),
-);
-
-export default [
+export default ts.config(
   { ignores: ["node_modules/**", "dist/**"] },
   js.configs.recommended,
+  ts.configs.recommended,
+  ...svelte.configs.recommended,
   {
-    files: ["*.js", "tests/**/*.cjs"],
-    languageOptions: { globals: { ...globals.browser, ...shared } },
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
     rules: {
-      "no-redeclare": ["error", { builtinGlobals: false }],
-      "no-unused-vars": [
+      "@typescript-eslint/no-unused-vars": [
         "error",
-        { vars: "local", args: "none", caughtErrors: "none" },
+        { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
       ],
     },
   },
-  { files: ["*.js"], languageOptions: { sourceType: "script" } },
   {
-    files: ["tests/**/*.cjs", "*.mjs"],
-    languageOptions: { globals: globals.node },
+    files: ["**/*.svelte", "**/*.svelte.ts"],
+    languageOptions: { parserOptions: { parser: ts.parser, svelteConfig } },
   },
-];
+  {
+    files: ["tests/**/*.cjs"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+);

@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const { randomUUID } = require("node:crypto");
 const { chromium } = require("playwright");
 const AxeBuilder = require("@axe-core/playwright").default;
-const { baseURL, editor } = require("./support.cjs");
+const { baseURL, editor, drafts, save, until } = require("./support.cjs");
 let browser;
 test.before(async () => {
   browser = await chromium.launch({ headless: true });
@@ -12,28 +12,6 @@ test.after(async () => {
   await browser?.close();
 });
 
-async function drafts(page, names) {
-  if (!(await page.locator(".add-point-control input").isChecked())) {
-    await page.locator(".add-point-control input").check();
-  }
-  for (const [index, name] of names.entries()) {
-    await page.evaluate(
-      (index) =>
-        map.fire("click", { latlng: L.latLng(52.34 + index * 0.001, 35.35) }),
-      index,
-    );
-    await page.locator(".change-add-point-name input").last().fill(name);
-  }
-}
-async function save(page) {
-  const response = page.waitForResponse(
-    (r) => r.request().method() === "POST" && r.url().endsWith("/points/add"),
-  );
-  await page.locator(".add-point-save").click();
-  const result = await response;
-  await page.waitForFunction(() => !pendingPointWrites.create);
-  return result;
-}
 async function saved(context, names) {
   return (
     await (await context.request.get(baseURL + "/api/v1/osm/points")).json()
@@ -140,7 +118,7 @@ test("unconfirmed response and network error retain drafts for explicit retry", 
     route.abort("failed"),
   );
   await page.locator(".add-point-save").click();
-  await page.waitForFunction(() => !pendingPointWrites.create);
+  await until(() => page.locator(".add-point-save").isDisabled(), false);
   await preserved(page, names);
   assert.match(
     await page.locator(".point-save-status").textContent(),
@@ -210,16 +188,14 @@ test("pending batch cannot be resubmitted and does not clear later drafts", asyn
       await page.locator(".change-add-point-name input").first().isDisabled(),
       true,
     );
-    await page.evaluate(() =>
-      document
-        .querySelector(".add-point-save")
-        .dispatchEvent(new MouseEvent("click")),
-    );
+    // A real double click cannot submit a disabled native button.
+    await page.locator(".add-point-save").focus();
+    await page.keyboard.press("Enter");
     const later = "Позже " + randomUUID();
     await drafts(page, [later]);
     release();
     await response;
-    await page.waitForFunction(() => !pendingPointWrites.create);
+    await until(() => page.locator(".add-point-save").isDisabled(), false);
     assert.equal(requests, 1);
     assert.equal((await saved(context, names)).length, 1);
     assert.equal((await saved(context, [later])).length, 0);

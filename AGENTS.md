@@ -16,13 +16,13 @@
 
 Сейчас приложения объединены в одном checkout:
 
-- `frontend/` — статические HTML/CSS/JavaScript-файлы и карта Leaflet.
-  `index.html`, `index.css`, `index.js` содержат страницу и инициализацию;
-  `points.js`, `roads.js`, `polygons.js` — геослои;
-  `add-point.js`, `delete-point.js`, `distance.js` — операции с точками;
-  `constraints.js` — относительный путь API.
+- `frontend/` — Svelte 5 + TypeScript strict + Vite + Leaflet.
+  `src/App.svelte` создаёт отдельную модель `src/lib/model.svelte.ts`;
+  `api.ts` валидирует transport-ответы, компоненты разделяют карту, слои,
+  редактор и расчёт дистанции. Unit/component tests — в `__tests__/`,
+  Chromium-сценарии — в `tests/browser/`. Сборка — `dist/`.
 - `backend/` — Maven-проект Java 25 / Spring Boot 3.5.7 с JdbcTemplate и PostGIS.
-  Maven включает frontend в static resources; UI и `/api/v1/osm` доступны с одного сервера.
+  Maven строит Vite через npm ci/build и включает только dist в static resources; UI и `/api/v1/osm` доступны с одного сервера.
 - `infra/` — Compose PostGIS, безопасная загрузка окружения и локальные команды.
 - `docs/` — происхождение исходников и документация; см. [migration.md](docs/migration.md).
 - `Makefile`, `.env.example` — корневые команды и пример конфигурации окружения.
@@ -31,10 +31,10 @@ Backend импортирован снимком из https://github.com/Kenedy22
 Проверяй актуальный `backend/pom.xml` перед работой; наличие зависимостей JPA
 не означает, что запросы реализованы через ORM.
 
-Согласованная дальнейшая цель: Svelte 5 + TypeScript в строгом режиме + Vite
-в `frontend/`, архитектура, модель данных и OpenAPI в `docs/`.
+Стек frontend: Svelte 5 + TypeScript в строгом режиме + Vite.
+Дальнейшая цель: полные архитектура, модель данных и OpenAPI в `docs/`.
 Flyway уже содержит V1/V2 пользовательской модели и V3 bootstrap OSM, а `infra/`
-поднимает локальную БД. Svelte и полный OpenAPI ещё не созданы; CI настроен в `.github/workflows/ci.yml`.
+поднимает локальную БД. Svelte уже реализован; полный OpenAPI ещё не завершён. CI — `.github/workflows/ci.yml`.
 Контракт изменённых маршрутов точек/distance/session уже находится в
 [openapi.json](docs/openapi.json); расширяй его, не создавай параллельный контракт.
 Не выдавай планируемое устройство за реализованное. Сохраняй выбранный стек;
@@ -59,7 +59,7 @@ Flyway уже содержит V1/V2 пользовательской модел
 
 ## Доступные команды
 
-Все команды выполняются из корня. Нужны полный JDK 25, Node.js 22,
+Все команды выполняются из корня. Нужны полный JDK 25, Node.js 22.23.4 (см. `frontend/.node-version`),
 Python 3.10+, GNU Make, Docker и Compose с `up --wait` (2.20+).
 
 ```sh
@@ -70,8 +70,8 @@ make run           # Frontend/API с .env/окружением, без вклю�
 make db-up         # Только локальный PostGIS; db-down сохраняет volume
 make db-reset-demo # Атомарно восстановить demo reference-строки, не user points
 make db-backup     # Приватная custom-format копия локальной БД
-make check         # JS/Python syntax и git diff --check
-make test-frontend # Регрессии черновиков, без Docker
+make check         # Svelte/TypeScript, Python syntax и git diff --check
+make test-frontend # Vitest transport/state/lifecycle, без Docker
 make test-infra    # CLI unit-тесты, без Docker
 make install-browser # Установить закреплённые зависимости браузерных тестов и Chromium
 make test-browser  # Popup/XSS и пакетное сохранение: свой временный PostGIS и приложение
@@ -81,7 +81,8 @@ make lint          # ESLint frontend и браузерных тестов
 make format-check  # Prettier frontend и Spotless Java
 make format        # Применить форматирование
 make ci            # Lint, формат, verify и браузерные тесты
-make build         # Только сборка JAR
+make dev-frontend  # Vite HMR с API proxy; см. docs/frontend.md
+make build         # Vite build и JAR
 ```
 
 Открывай `http://localhost:8080` (либо `SERVER_PORT`). Spring Boot обслуживает
@@ -105,11 +106,14 @@ Backup/restore и необязательный импорт описаны в [i
 Restore заменяет БД: останови backend, проверь файл и требуй `CONFIRM_RESTORE=YES`.
 Не удаляй volume или `app` ради сброса demo.
 
-У frontend пока нет npm-сборки и TypeScript; Node-регрессии в `frontend/tests/`
-не заменяют браузерные проверки. `frontend/package.json` содержит dev dependencies браузерных тестов и ESLint/Prettier. `make test-browser` обязателен для изменений popup и UI сохранения;
-он не входит в обычный `make verify`. Подготовка — [browser-tests.md](docs/browser-tests.md).
-При обновлении Leaflet/Bootstrap синхронизируй версии dev-fixtures, их URL и SRI;
-browser tests используют настоящие distribution-файлы вместо CDN и не проверяют тайлы.
+После `npm --prefix frontend ci --ignore-scripts` доступны `dev`, `build`, `check`,
+`lint`, `test`. `make ci` включает типы, lint/format, Vitest, backend и Chromium.
+`make test-browser` обязателен для изменений UI; обычный `make verify` его не включает.
+Maven lifecycle сам выполняет npm ci/build; нужны Node/npm и сеть при первом запуске.
+В JAR копируется только dist; старый static output очищается на initialize.
+Leaflet JS/CSS bundled, CDN-fixtures и Bootstrap больше не используются.
+Тесты отключают тайлы; runtime-код не предоставляет глобальный API для тестов.
+Подробности — [frontend.md](docs/frontend.md), [browser-tests.md](docs/browser-tests.md).
 Дополнительные Maven-флаги — через `MAVEN_ARGS`.
 Обновляй эти инструкции при изменении реальных команд и условий запуска.
 
@@ -193,7 +197,7 @@ browser tests используют настоящие distribution-файлы в
 - Исправления поведения сопровождай проверкой исходного ошибочного сценария.
   Для UI проверяй черновики, переключение режимов, задержанные ответы и ошибки;
   запускай существующие регрессионные проверки и дополняй их для нового поведения.
-- После добавления Svelte запускай предусмотренные проектом проверку типов,
+- Для Svelte запускай предусмотренные проектом проверку типов,
   lint, сборку и релевантные тесты; изменения Leaflet дополнительно проверяй в браузере.
 - Изменения API, SQL, схемы и конфигурации БД проверяй интеграционно с настоящим
   изолированным PostGIS, миграциями и seed. Одних моков JdbcTemplate недостаточно

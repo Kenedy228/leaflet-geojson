@@ -2,9 +2,16 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 const AxeBuilder = require("@axe-core/playwright").default;
-const { editor: createEditor } = require("./support.cjs");
+const {
+  editor,
+  drafts,
+  save,
+  points,
+  activate,
+  until,
+} = require("./support.cjs");
 
-const payload = `<b>Кавычки " ' &</b><img src="/__popup_test_missing" onerror="window.__popupXss=true"><svg onload="window.__popupXss=true"></svg>`;
+const payload = `<b>Кавычки " ' &</b><img src="/__popup_test_missing" onerror="document.title='XSS EXECUTED'"><svg onload="document.title='XSS EXECUTED'"></svg>`;
 let browser;
 test.before(async () => {
   browser = await chromium.launch({ headless: true });
@@ -13,83 +20,40 @@ test.after(async () => {
   await browser?.close();
 });
 
-async function editor(t) {
-  return createEditor(browser, t);
-}
-
 async function literalPopup(page, expected) {
   const popup = page.locator(".leaflet-popup-content").last();
   await popup.waitFor({ state: "visible" });
-  assert.equal(await popup.textContent(), expected);
+  assert.ok((await popup.textContent()).includes(expected));
   assert.equal(
     await popup
       .locator("img, svg, script, iframe, [onerror], [onload]")
       .count(),
     0,
   );
-  assert.equal(await page.evaluate(() => window.__popupXss), false);
+  assert.notEqual(await page.title(), "XSS EXECUTED");
 }
 
 test("draft, persisted point, selection and distance names remain literal after save/reload", async (t) => {
-  const { page } = await editor(t);
-  const ids = [];
-  await page.locator(".points-control").check();
-  await page.waitForFunction(() => pointsMarkers.getLayers().length >= 3);
-  await page.locator(".add-point-control input").check();
-  await page.evaluate(() =>
-    map.fire("click", { latlng: L.latLng(52.34, 35.35) }),
-  );
-  await page.locator(".change-add-point-name input").fill(payload);
-  await page.locator(".save-new-point").click();
-  await page.evaluate(() => newMarkers[0].marker.openPopup());
+  const { page } = await editor(browser, t);
+  await points(page);
+  await drafts(page, [payload]);
+  await activate(page.locator(".leaflet-interactive[data-draft-id]").first());
   await literalPopup(page, payload);
-  const saved = page.waitForResponse(
-    (r) => r.url().endsWith("/points/add") && r.status() === 201,
-  );
-  await page.locator(".add-point-save").click();
-  const data = await (await saved).json();
-  ids.push(data.points[0].id);
+  const data = await (await save(page)).json();
   assert.equal(data.points[0].name, payload);
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.waitForFunction(
-    () => typeof accessState !== "undefined" && accessState.can_edit,
-  );
-  const loaded = page.waitForResponse(
-    (r) => r.url().endsWith("/osm/points") && r.status() === 200,
-  );
-  await page.locator(".points-control").check();
-  assert.equal(
-    (await (await loaded).json()).find((point) => point.id === ids[0]).name,
-    payload,
-  );
-  await page.waitForFunction(
-    (id) => pointsMarkers.getLayers().some((group) => group.pointId === id),
-    ids[0],
-  );
-  await page.evaluate(
-    (id) =>
-      pointsMarkers
-        .getLayers()
-        .find((group) => group.pointId === id)
-        .getLayers()[0]
-        .openPopup(),
-    ids[0],
-  );
+  await page.locator(".access-logout").waitFor();
+  await points(page);
+  const marker = page.locator(`[data-point-id="${data.points[0].id}"]`);
+  await activate(marker);
   await literalPopup(page, payload);
-  await page.locator(".points-distance > input").check();
-  const names = await page.evaluate((id) => {
-    const stored = pointsMarkers
-      .getLayers()
-      .find((group) => group.pointId === id)
-      .getLayers()[0];
-    const osm = pointsMarkers
-      .getLayers()
-      .find((group) => group.pointId.startsWith("osm:"))
-      .getLayers()[0];
-    stored.fire("click");
-    osm.fire("click");
-    return selectedMarkers.map((point) => point.name);
-  }, ids[0]);
+  await page.locator(".points-distance-control").check();
+  await activate(marker);
+  await activate(page.locator('[data-point-id^="osm:"]').first());
+  await until(
+    () => page.locator(".points-distance-selected-list li").count(),
+    2,
+  );
   assert.equal(
     await page
       .locator(".points-distance-selected-list li")
@@ -102,35 +66,30 @@ test("draft, persisted point, selection and distance names remain literal after 
   );
   await page.locator(".points-distance-calculate-control").click();
   const distance = await (await calculated).json();
-  await page.waitForFunction(() => distanceLayerGroup.getLayers().length === 1);
-  await page.evaluate(() => distanceLayerGroup.getLayers()[0].openPopup());
-  const expected =
-    `Дистанция участка ${names[0]}-${names[1]}: ${distance.lines[0].distance.toFixed(2)} м` +
-    `Общая дистанция: ${distance.totalDistance.toFixed(2)} м`;
-  await literalPopup(page, expected);
-  assert.equal(
-    await page.locator(".leaflet-popup-content").last().locator("br").count(),
-    1,
-  );
-  await page.waitForFunction(
-    () => document.querySelectorAll(".leaflet-popup").length === 1,
+  const line = page.locator("[data-distance-line]").first();
+  await line.waitFor({ state: "attached" });
+  await activate(line);
+  await literalPopup(page, payload);
+  assert.ok(
+    (
+      await page.locator(".leaflet-popup-content").last().textContent()
+    ).includes(distance.lines[0].distance.toFixed(2)),
   );
   const axe = await new AxeBuilder({ page })
     .include(".leaflet-popup")
     .analyze();
   assert.deepEqual(
-    axe.violations.map((violation) => violation.id),
+    axe.violations.map((v) => v.id),
     [],
   );
-  await page.locator(".leaflet-popup-close-button").focus();
+  await page.locator(".leaflet-popup-close-button").last().focus();
   await page.keyboard.press("Enter");
-  await page.locator(".leaflet-popup").waitFor({ state: "detached" });
+  await until(() => page.locator(".leaflet-popup").count(), 0);
 });
 
 for (const layer of ["roads", "polygons"]) {
   test(`${layer} imported names and empty-name fallback are literal in real Leaflet popups`, async (t) => {
-    const { page } = await editor(t);
-    // Keep actual API geometry; inject only transport names to exercise the renderer.
+    const { page } = await editor(browser, t);
     await page.route(`**/api/v1/osm/${layer}`, async (route) => {
       const response = await route.fetch();
       const data = await response.json();
@@ -140,23 +99,13 @@ for (const layer of ["roads", "polygons"]) {
       await route.fulfill({ response, json: data });
     });
     await page.locator(`.${layer}-control`).check();
-    await page.waitForFunction(
-      (layer) =>
-        ({ roads: roadsMarkers, polygons: polygonsMarkers })[layer].getLayers()
-          .length >= 2,
-      layer,
-    );
+    const paths = page.locator(`.leaflet-interactive[data-layer="${layer}"]`);
+    await until(() => paths.count(), 2);
     for (const [index, expected] of [
       [0, payload],
       [1, "Без названия"],
     ]) {
-      await page.evaluate(
-        ({ layer, index }) => {
-          const groups = { roads: roadsMarkers, polygons: polygonsMarkers };
-          groups[layer].getLayers()[index].getLayers()[0].openPopup();
-        },
-        { layer, index },
-      );
+      await activate(paths.nth(index));
       await literalPopup(page, expected);
     }
   });

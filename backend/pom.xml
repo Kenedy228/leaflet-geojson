@@ -80,16 +80,47 @@
 				<directory>src/main/resources</directory>
 			</resource>
 			<resource>
-				<directory>${project.basedir}/../frontend</directory>
+				<directory>${project.basedir}/../frontend/dist</directory>
 				<targetPath>static</targetPath>
-				<includes>
-					<include>*.html</include>
-					<include>*.css</include>
-					<include>*.js</include>
-				</includes>
 			</resource>
 		</resources>
 		<plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>remove-obsolete-frontend-assets</id>
+                        <phase>initialize</phase>
+                        <goals><goal>clean</goal></goals>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets><fileset><directory>${project.build.outputDirectory}/static</directory></fileset></filesets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.6.4</version>
+                <configuration><workingDirectory>${project.basedir}/../frontend</workingDirectory></configuration>
+                <executions>
+                    <execution>
+                        <id>install-frontend</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>exec</goal></goals>
+                        <configuration><executable>npm</executable><arguments><argument>ci</argument><argument>--ignore-scripts</argument></arguments></configuration>
+                    </execution>
+                    <execution>
+                        <id>build-frontend</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>exec</goal></goals>
+                        <configuration><executable>npm</executable><arguments><argument>run</argument><argument>build</argument></arguments></configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
