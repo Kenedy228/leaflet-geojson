@@ -66,6 +66,8 @@ make db-backup     # Приватная копия локальной БД в ba
 make check         # Синтаксис JS/Python и пробельные ошибки Git diff
 make test-frontend # Node-регрессии без БД
 make test-infra    # CLI unit-тесты без Docker
+make install-browser # Установить зависимости браузерных тестов и Chromium
+make test-browser  # XSS-регрессии popup с отдельными PostGIS и приложением
 make test          # Все тесты, отдельный временный PostGIS создаётся автоматически
 make verify        # Проверки, тесты и сборка JAR
 make build         # JAR без запуска тестов
@@ -75,6 +77,9 @@ Backend-тесты не используют dev-volume: каждый запус
 project, tmpfs и случайный порт; после выполнения он удаляется. Никакого ручного
 SQL перед `make verify` не требуется. Для внешнего тестового контура есть явный
 `TEST_DB_URL`; не направляй его на личные/demo-данные.
+
+Для изменений popup дополнительно запускай `make test-browser`.
+[Подготовка и границы браузерной проверки](docs/browser-tests.md).
 
 Собранный JAR — `backend/target/gis-0.0.1-SNAPSHOT.jar`. При прямом `java -jar`
 параметры `DB_*` нужно предоставить окружением процесса: JVM сама `.env` не читает.

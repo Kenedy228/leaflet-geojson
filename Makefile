@@ -4,7 +4,7 @@
 MAVEN_ARGS ?=
 export MAVEN_ARGS BACKUP_FILE CONFIRM_RESTORE
 
-.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra test verify
+.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra install-browser test-browser test verify
 
 help:
 	@printf '%s\n' \
@@ -19,6 +19,8 @@ help:
 	  'make check   Check frontend JavaScript syntax and Git whitespace' \
 	  'make build   Build the application JAR without running tests' \
 	  'make test-frontend  Run frontend point identity regression tests' \
+	  'make install-browser  Install pinned browser test dependencies and Chromium' \
+	  'make test-browser  Run popup regressions on disposable PostGIS and app' \
 	  'make test    Run tests using a disposable, isolated PostGIS' \
 	  'make verify  Run checks, tests and build the application JAR'
 
@@ -54,7 +56,7 @@ db-restore:
 
 check:
 	@set -eu; for file in frontend/*.js; do node --check "$$file"; done
-	python3 -m py_compile infra/manage.py
+	python3 -m py_compile infra/manage.py infra/browser_test.py
 	git diff --check
 
 build:
@@ -65,6 +67,13 @@ test-frontend:
 
 test-infra:
 	python3 -m unittest discover -s infra/__tests__ -v
+
+install-browser:
+	npm --prefix frontend ci --ignore-scripts
+	npm --prefix frontend exec -- playwright install chromium
+
+test-browser:
+	python3 infra/browser_test.py
 
 test: test-frontend test-infra
 	python3 infra/manage.py test
