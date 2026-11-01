@@ -2,23 +2,55 @@
 
 # For example: make build MAVEN_ARGS=-Dmaven.repo.local=/tmp/leaflet-m2
 MAVEN_ARGS ?=
+export MAVEN_ARGS BACKUP_FILE CONFIRM_RESTORE
 
-.PHONY: help run check build test-frontend test verify
+.PHONY: help init-env dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra test verify
 
 help:
 	@printf '%s\n' \
-	  'make run     Start frontend and API at http://localhost:8080 (requires PostGIS)' \
+	  'make init-env  Create private .env without replacing an existing file' \
+	  'make dev     Start local PostGIS and frontend/API with demo data' \
+	  'make run     Start frontend/API using .env (without demo seeding)' \
+	  'make db-up / db-down  Start / stop local PostGIS, preserving its volume' \
+	  'make db-seed / db-reset-demo  Restore only the licensed demo reference rows' \
+	  'make db-backup  Save local DB to a private backups/*.dump file' \
+	  'make db-restore BACKUP_FILE=... CONFIRM_RESTORE=YES  Restore a trusted backup' \
 	  'make check   Check frontend JavaScript syntax and Git whitespace' \
 	  'make build   Build the application JAR without running tests' \
 	  'make test-frontend  Run frontend point identity regression tests' \
-	  'make test    Run frontend and backend tests (requires a prepared test database)' \
-	  'make verify  Run checks, tests and package the application (requires test database)'
+	  'make test    Run tests using a disposable, isolated PostGIS' \
+	  'make verify  Run checks, tests and build the application JAR'
+
+init-env:
+	python3 infra/manage.py init-env
+
+dev:
+	python3 infra/manage.py dev
 
 run:
-	cd backend && ./mvnw $(MAVEN_ARGS) spring-boot:run
+	python3 infra/manage.py run
+
+db-up:
+	python3 infra/manage.py up
+
+db-down:
+	python3 infra/manage.py down
+
+db-seed:
+	python3 infra/manage.py seed
+
+db-reset-demo:
+	python3 infra/manage.py reset-demo
+
+db-backup:
+	python3 infra/manage.py backup
+
+db-restore:
+	python3 infra/manage.py restore
 
 check:
 	@set -eu; for file in frontend/*.js; do node --check "$$file"; done
+	python3 -m py_compile infra/manage.py
 	git diff --check
 
 build:
@@ -27,8 +59,11 @@ build:
 test-frontend:
 	node --test frontend/tests/*.test.cjs
 
-test: test-frontend
-	cd backend && ./mvnw $(MAVEN_ARGS) test
+test-infra:
+	python3 -m unittest discover -s infra/__tests__ -v
 
-verify: check test-frontend
-	cd backend && ./mvnw $(MAVEN_ARGS) verify
+test: test-frontend test-infra
+	python3 infra/manage.py test
+
+verify: check test-frontend test-infra
+	python3 infra/manage.py verify

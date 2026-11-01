@@ -1,145 +1,108 @@
 # Leaflet GeoJSON GIS
 
-Курсовой GIS-проект: просмотр точек, дорог и полигонов на карте OpenStreetMap,
-создание и удаление точек, расчёт геодезического расстояния между выбранными точками.
-Проект готовится для GitHub-портфолио; публичное развёртывание не требуется.
+Курсовой GIS-проект: просмотр точек, дорог и полигонов на карте, создание и удаление
+пользовательских точек, расчёт геодезического расстояния. Проект готовится для
+GitHub-портфолио; публичное развёртывание не требуется.
 
-Сейчас frontend использует JavaScript и Leaflet 1.9.4, backend — Java 25,
-Spring Boot 3.5.7 и PostgreSQL/PostGIS. Переход на Svelte 5 + TypeScript + Vite
-запланирован в [#21](https://github.com/Kenedy228/leaflet-geojson/issues/21).
+Сейчас используются Leaflet 1.9.4 и JavaScript, Java 25 / Spring Boot 3.5.7,
+PostgreSQL/PostGIS. Переход на Svelte 5 + TypeScript + Vite —
+[#21](https://github.com/Kenedy228/leaflet-geojson/issues/21).
+
+## Быстрый запуск
+
+Требуются полный JDK 25, Node.js 22, Python 3.10+, GNU Make, Docker и Docker Compose
+с `up --wait` (2.20+). Первый запуск скачивает Maven/dependencies и PostGIS-образ.
+
+```sh
+make init-env
+make dev
+```
+
+`init-env` создаёт приватную `.env` со случайным паролем и сохраняет существующую
+конфигурацию. `dev` поднимает локальный PostGIS, ждёт готовности, применяет миграции
+и небольшой demo-снимок OSM. Открой **http://localhost:8080**: frontend и API работают
+с одного адреса. Для Leaflet/Bootstrap CDN и OSM-тайлов нужен интернет; demo-данные
+уже включены в репозиторий и не скачиваются при старте.
+
+`Ctrl+C` останавливает приложение. `make db-down` останавливает БД, сохраняя данные.
+Повторный `make dev` использует тот же volume и не дублирует demo-объекты.
+
+Порты меняются в `.env` через `DB_PORT` и `SERVER_PORT`. Конфигурация читается как
+данные: shell-подстановки не выполняются; окружение имеет приоритет. Внешний
+`DB_URL` поддерживается командой `make run`; `make dev` всегда использует локальный
+Compose-контур. Подробности, ограничения формата и все переменные — в
+[infra/README.md](infra/README.md).
 
 ## Структура
 
 ```text
-frontend/    Статическая страница, стили и JavaScript карты
-backend/     Maven-проект Spring Boot, API и интеграционные тесты
-docs/        Происхождение исходников и документация
-AGENTS.md    Правила работы с репозиторием
-Makefile     Общие команды запуска и проверки
+frontend/    Статический интерфейс Leaflet и frontend-регрессии
+backend/     Spring Boot API, Flyway-миграции и интеграционные тесты
+infra/       Compose, локальные команды, документация геоданных и CLI-тесты
+docs/        Происхождение исходников и модель пользовательских точек
+AGENTS.md    Правила работы с репозиторием и Git workflow
+Makefile     Общие команды
 ```
 
-Spring Boot отдаёт frontend и `/api/v1/osm` с одного адреса. Maven копирует
-HTML/CSS/JavaScript из `frontend/` в static resources приложения, включая JAR.
-Отдельный сервер frontend на этом этапе не нужен.
-
-## Требования
-
-- JDK 25; проверь `java -version` и при необходимости настрой `JAVA_HOME`.
-- GNU Make и POSIX shell для корневых команд; альтернативные Maven-команды ниже.
-- Node.js 22 для проверок и frontend-регрессий; npm-зависимостей и отдельной frontend-сборки пока нет.
-- Доступ к Maven Central при первом запуске. Maven 3.9.11 скачивается wrapper-скриптом.
-- Подготовленная PostgreSQL/PostGIS БД с исходной OSM-схемой и данными.
-
-**Ограничение текущего этапа:** полного создания БД, миграций OSM и seed пока нет
-([#2](https://github.com/Kenedy228/leaflet-geojson/issues/2)). Flyway создаёт пользовательские
-точки в отдельной схеме `app`; для чтения импортированных слоёв пустой PostgreSQL
-недостаточен. API использует PostGIS, hstore и таблицы:
-
-| Таблица | Используемые столбцы |
-| --- | --- |
-| `planet_osm_point` | `osm_id`, `name`, `way` |
-| `planet_osm_roads` | `osm_id`, `name`, `highway`, `way` |
-| `planet_osm_polygon` | `osm_id`, `name`, `tags` (hstore), `way` |
-
-Столбцы `way` содержат геометрию. Импортированные таблицы должны иметь совместимые
-типы и SRID. Новые пользовательские точки пишутся только в `app.user_points`
-в EPSG:4326 с UUID, генерируемым БД; OSM-точки через API доступны только для чтения.
-Реквизиты должны позволять Flyway создать схему `app` и её объекты.
-Импорт OSM выполняется отдельно средствами БД; при его обновлении не сбрасывай `app`.
-Старые пользовательские записи переносятся только по явно проверенным ID:
-[модель и инструкция переноса](docs/user-points.md).
-
-## Запуск
-
-Из корня репозитория:
+## Команды
 
 ```sh
-cp .env.example .env
+make run           # API/frontend без demo seeding, конфигурация из .env/окружения
+make db-up         # Только локальная БД, ожидание healthcheck
+make db-down       # Остановить БД, не удаляя volume
+make db-reset-demo # Восстановить только demo reference-данные, сохраняя user points
+make db-backup     # Приватная копия локальной БД в backups/
+make check         # Синтаксис JS/Python и пробельные ошибки Git diff
+make test-frontend # Node-регрессии без БД
+make test-infra    # CLI unit-тесты без Docker
+make test          # Все тесты, отдельный временный PostGIS создаётся автоматически
+make verify        # Проверки, тесты и сборка JAR
+make build         # JAR без запуска тестов
 ```
 
-Укажи в `.env` реквизиты своей локальной БД. Файл не коммитится. Затем экспортируй
-переменные в текущую POSIX shell и запусти приложение:
+Backend-тесты не используют dev-volume: каждый запуск получает отдельный Compose
+project, tmpfs и случайный порт; после выполнения он удаляется. Никакого ручного
+SQL перед `make verify` не требуется. Для внешнего тестового контура есть явный
+`TEST_DB_URL`; не направляй его на личные/demo-данные.
 
-```sh
-set -a
-. ./.env
-set +a
-make run
-```
+Собранный JAR — `backend/target/gis-0.0.1-SNAPSHOT.jar`. При прямом `java -jar`
+параметры `DB_*` нужно предоставить окружением процесса: JVM сама `.env` не читает.
+Без Make команды реализованы в `python3 infra/manage.py`; Java Wrapper находится
+в `backend/`. Дополнительные флаги: `make verify MAVEN_ARGS='-B -ntp'`.
 
-Файл `.env` автоматически не загружается Spring Boot или Make. Используй свой
-локальный файл: команда `. ./.env` исполняет shell-содержимое. В PowerShell экспортируй
-`DB_URL`, `DB_USER`, `DB_PASSWORD` и при необходимости `SERVER_PORT` через `$env:`.
+## Данные и сохранность
 
-Открой `http://localhost:8080` (либо порт `SERVER_PORT`). UI обращается к API
-по относительному пути `/api/v1/osm`; другие hostname и порты не требуют правки JS.
-Остановка — `Ctrl+C`. После изменения frontend перезапусти `make run`, чтобы
-Maven скопировал обновлённые ресурсы.
+Пользовательские точки хранятся в `app.user_points` с UUID от БД, в EPSG:4326.
+OSM-reference таблицы находятся в `public`, в EPSG:3857 и доступны API только
+для чтения. Обновление/сброс demo не удаляет пользовательские записи.
 
-Сборка и запуск JAR с теми же экспортированными переменными:
+Demo включает 3 точки, 2 дороги и 2 полигона из реального OSM-снимка Железногорска.
+Данные © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright),
+[ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/). Источник, версии объектов,
+лицензия и правила необязательного полного импорта описаны в
+[infra/README.md](infra/README.md). Лицензия программного кода пока не выбрана.
 
-```sh
-make build
-java -jar backend/target/gis-0.0.1-SNAPSHOT.jar
-```
-
-Без Make: из `backend/` выполни `./mvnw spring-boot:run` или
-`./mvnw -DskipTests package`. В Windows используй `mvnw.cmd`.
-
-## Проверки
-
-```sh
-make check    # Синтаксис JavaScript и пробельные ошибки в Git diff
-make test-frontend  # Регрессии ID черновиков, без БД
-make test     # Frontend- и backend-тесты; нужна отдельная тестовая БД
-make verify   # Проверки, тесты и сборка JAR
-```
-
-Для тестов нужна **отдельная пустая PostGIS-БД**, которую можно менять.
-Подготовь тестовые OSM-таблицы (не выполняй это на личной/demo-БД):
-
-```sh
-psql -h localhost -p 5432 -U gis -d gis_test -v ON_ERROR_STOP=1 \
-  -f backend/src/test/resources/fixtures/osm.sql
-```
-
-Экспортируй `DB_URL=jdbc:postgresql://localhost:5432/gis_test`, `DB_USER` и `DB_PASSWORD`.
-Flyway создаст `app` при запуске тестов. Тесты проверяют раздачу ресурсов, контракт
-идентификаторов, конкурентные вставки, удаление, транзакции и legacy-перенос.
-Fixtures описывают старую схему для тестов, не заменяют production-миграции #2.
-CI и автоматический контейнер тестовой БД пока не настроены; полный набор
-поведения развивается в [#16](https://github.com/Kenedy228/leaflet-geojson/issues/16).
-
-Без Make: проверку JS можно выполнить командой
-`for file in frontend/*.js; do node --check "$file" || exit; done`;
-frontend-регрессии — `node --test frontend/tests/*.test.cjs`;
-из `backend/` доступны `./mvnw test` и `./mvnw verify`.
+Для переноса старых пользовательских записей используй
+[инструкцию явного legacy-переноса](docs/user-points.md).
+Восстановление резервной копии заменяет состояние БД и требует остановки backend,
+пути к доверенному файлу и `CONFIRM_RESTORE=YES`; процедура описана в infra.
+Не удаляй volume для обычного сброса demo-данных.
 
 ## Если запуск не работает
 
-- Ошибка datasource: проверь экспорт `DB_PASSWORD`, адрес БД, порт, права и наличие
-  схемы. Успешный старт приложения сам по себе не подтверждает наличие OSM-таблиц.
-- `relation does not exist` или отсутствующая SQL-функция: проверь таблицы,
-  расширения PostGIS/hstore и `search_path` пользователя БД.
-- Ошибка скачивания Maven: нужны сеть до Maven Central и доступный для записи
-  Maven cache. Для отдельного wrapper-cache можно задать `MAVEN_USER_HOME`;
-  для зависимостей — `make build MAVEN_ARGS=-Dmaven.repo.local=/path/to/cache`.
-- Не находится JDK 25: проверь `JAVA_HOME` и `PATH`.
-- Не загружаются Leaflet/Bootstrap или тайлы: текущая страница использует CDN
-  unpkg/jsDelivr и `tile.openstreetmap.org`; для них нужен интернет.
+- Проверь `JAVA_HOME`: нужен полный JDK 25, одного runtime недостаточно.
+- Проверь Docker daemon и доступ пользователя к нему; порт БД публикуется только
+  на localhost. Конфликт портов устраняется настройками `.env`.
+- Для скачивания Maven нужен доступ к Maven Central и записываемый cache.
+  Можно задать `MAVEN_USER_HOME` и `MAVEN_ARGS=-Dmaven.repo.local=/path/to/cache`.
+- Ошибка demo seed с существующими reference-данными — защитный отказ.
+  Для реального импорта используй `make run`, отдельную БД и соответствующий профиль
+  из infra; чужие таблицы автоматически не очищаются.
+- Восстановление/импорт должны выполняться с остановленным backend; пароль уже
+  инициализированного PostgreSQL не меняется простым редактированием `.env`.
 
-## Состояние проекта
-
-Это этап объединения исходников, а не завершённая production-ready система.
-Известные дефекты сохранения, управления состоянием, безопасного вывода и прав
-на изменение данных описаны в [roadmap #20](https://github.com/Kenedy228/leaflet-geojson/issues/20).
-Проверки объединения и способ переноса истории приведены в [docs/migration.md](docs/migration.md).
-Текущая модель и контракт точек описаны в [docs/user-points.md](docs/user-points.md).
-
-Исходники backend: [leaflet-geojson-backend](https://github.com/Kenedy228/leaflet-geojson-backend).
-Карта использует данные © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright).
-Восстановление видимой атрибуции в UI отслеживается в [#15](https://github.com/Kenedy228/leaflet-geojson/issues/15).
-Лицензия кода пока не выбрана; лицензирование данных и сторонних компонентов
-учитывается отдельно. Детальная архитектура и OpenAPI относятся к
-[#19](https://github.com/Kenedy228/leaflet-geojson/issues/19), полное оформление
-README — к [#22](https://github.com/Kenedy228/leaflet-geojson/issues/22).
+Полное состояние и оставшиеся задачи —
+[roadmap #20](https://github.com/Kenedy228/leaflet-geojson/issues/20).
+Авторизация, доработка UI, Svelte и GitHub CI ещё не завершены; это не заявление
+о готовом публичном production-сервисе.
+[Происхождение кода](docs/migration.md), [контракт точек](docs/user-points.md).
