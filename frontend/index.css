@@ -33,10 +33,6 @@
   margin-bottom: 10px;
 }
 
-.leaflet-bottom {
-  display: none;
-}
-
 #map {
   height: 800px;
   width: 100%;

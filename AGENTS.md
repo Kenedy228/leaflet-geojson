@@ -23,6 +23,7 @@
   `constraints.js` — относительный путь API.
 - `backend/` — Maven-проект Java 25 / Spring Boot 3.5.7 с JdbcTemplate и PostGIS.
   Maven включает frontend в static resources; UI и `/api/v1/osm` доступны с одного сервера.
+- `infra/` — Compose PostGIS, безопасная загрузка окружения и локальные команды.
 - `docs/` — происхождение исходников и документация; см. [migration.md](docs/migration.md).
 - `Makefile`, `.env.example` — корневые команды и пример конфигурации окружения.
 
@@ -31,9 +32,9 @@ Backend импортирован снимком из https://github.com/Kenedy22
 не означает, что запросы реализованы через ORM.
 
 Согласованная дальнейшая цель: Svelte 5 + TypeScript в строгом режиме + Vite
-в `frontend/`, воспроизводимое локальное окружение в `infra/`, архитектура,
-модель данных и OpenAPI в `docs/`. Flyway уже управляет пользовательскими точками
-в схеме `app`; Svelte, `infra/`, миграции OSM и CI ещё не созданы.
+в `frontend/`, архитектура, модель данных и OpenAPI в `docs/`.
+Flyway уже содержит V1/V2 пользовательской модели и V3 bootstrap OSM, а `infra/`
+поднимает локальную БД. Svelte, полный OpenAPI и GitHub CI ещё не созданы.
 Не выдавай планируемое устройство за реализованное. Сохраняй выбранный стек;
 его замена требует согласования с пользователем.
 Реализуй целевую структуру постепенно в рамках соответствующих issues.
@@ -56,51 +57,48 @@ Backend импортирован снимком из https://github.com/Kenedy22
 
 ## Доступные команды
 
-Все команды этого раздела выполняются из корня репозитория.
-Нужны полный JDK 25, GNU Make и POSIX shell; Node.js 22 — для frontend-проверок.
-Maven 3.9.11 загружается wrapper-скриптом при первом запуске.
-
-Для запуска и интеграционных тестов нужна отдельная подготовленная PostGIS БД
-с OSM-таблицами и hstore. Flyway автоматически создаёт `app` и её историю;
-полное окружение и миграции OSM пока не добавлены. Для тестов используй отдельную
-БД с `backend/src/test/resources/fixtures/osm.sql`, не личную/demo-БД.
-Настрой `.env` по `.env.example` и экспортируй локальные переменные:
+Все команды выполняются из корня. Нужны полный JDK 25, Node.js 22,
+Python 3.10+, GNU Make, Docker и Compose с `up --wait` (2.20+).
 
 ```sh
-set -a
-. ./.env
-set +a
-make run
+make init-env      # Создать приватную .env со случайным паролем, не перезаписывая существующую
+make dev           # Локальный PostGIS + миграции + demo + frontend/API
+make run           # Frontend/API с .env/окружением, без включения demo
+make db-up         # Только локальный PostGIS; db-down сохраняет volume
+make db-reset-demo # Атомарно восстановить demo reference-строки, не user points
+make db-backup     # Приватная custom-format копия локальной БД
+make check         # JS/Python syntax и git diff --check
+make test-frontend # Регрессии черновиков, без Docker
+make test-infra    # CLI unit-тесты, без Docker
+make test          # Все тесты; свой временный PostGIS создаётся и удаляется автоматически
+make verify        # Проверки, тесты и JAR
+make build         # Только сборка JAR
 ```
 
-`.env` автоматически не загружается. Команда `. ./.env` исполняет shell-содержимое,
-поэтому используй только свой локальный файл. Открывай `http://localhost:8080`
-(либо порт `SERVER_PORT`). Не запускай frontend через обычный статический сервер:
-относительный `/api/v1/osm` должен обслуживаться тем же Spring Boot приложением.
-После изменения frontend перезапускай `make run` для обновления Maven-ресурсов.
+Открывай `http://localhost:8080` (либо `SERVER_PORT`). Spring Boot обслуживает
+frontend и `/api/v1/osm` с одного адреса; обычный статический сервер для frontend
+этого API не предоставляет. После изменения frontend перезапускай приложение.
 
-```sh
-make check    # Синтаксис frontend/*.js и git diff --check
-make build    # JAR без запуска тестов
-make test-frontend  # Регрессии идентификаторов черновиков, без БД
-make test     # Frontend и backend; нужны реквизиты отдельной подготовленной тестовой БД
-make verify   # Проверки, тесты и упаковка JAR
-```
+`.env` читает `infra/manage.py` как данные, не shell-код; окружение имеет приоритет.
+Не предлагай `. ./.env`. `make dev` всегда использует Compose, внешний `DB_URL`
+поддерживает только `make run`. Backend при прямом запуске JAR требует экспортированных
+`DB_*`; JVM сама `.env` не загружает. Путь JAR — `backend/target/gis-0.0.1-SNAPSHOT.jar`.
 
-Без Make запускай из `backend/` команды `./mvnw spring-boot:run`,
-`./mvnw -DskipTests package`, `./mvnw test` или `./mvnw verify`;
-в Windows используй `mvnw.cmd`. Собранное приложение запускается из корня:
+Тесты по умолчанию получают уникальный Compose project, tmpfs и случайный порт,
+не dev-volume. `TEST_DB_URL` — явное переключение на отдельную внешнюю тестовую БД.
+Не используй личные/demo-данные для тестов. Схема создаётся production-миграциями;
+не поддерживай дублирующий ручной test DDL.
 
-```sh
-java -jar backend/target/gis-0.0.1-SNAPSHOT.jar
-```
+Включение demo — явное. Seed/reset отказываются менять чужой OSM-импорт,
+работают только с отмеченными reference-строками и не затрагивают `app.user_points`.
+Обычный профиль разрешает ту же repeatable миграцию, но не изменяет reference-данные.
+Backup/restore и необязательный импорт описаны в [infra/README.md](infra/README.md).
+Restore заменяет БД: останови backend, проверь файл и требуй `CONFIRM_RESTORE=YES`.
+Не удаляй volume или `app` ради сброса demo.
 
-У frontend пока нет `package.json`, отдельной сборки, lint или проверки TypeScript.
-Регрессии в `frontend/tests/` запускаются через Node test runner без npm-зависимостей.
-Проверка синтаксиса не заменяет эти тесты и проверку UI в браузере.
-Обновляй команды, рабочие каталоги, версии и условия запуска в том же изменении,
-которое добавляет Svelte, миграции или CI. Не выдумывай отсутствующие команды.
-Подробности настройки и ограничения описаны в [README.md](README.md).
+У frontend пока нет npm-сборки, lint и TypeScript; Node-регрессии в `frontend/tests/`
+не заменяют браузерные проверки. Дополнительные Maven-флаги — через `MAVEN_ARGS`.
+Обновляй эти инструкции при изменении реальных команд и условий запуска.
 
 ## Правила реализации
 
