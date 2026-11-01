@@ -114,6 +114,7 @@ Maven lifecycle сам выполняет npm ci/build; нужны Node/npm и �
 Leaflet JS/CSS bundled, CDN-fixtures и Bootstrap больше не используются.
 Тесты отключают тайлы; runtime-код не предоставляет глобальный API для тестов.
 Подробности — [frontend.md](docs/frontend.md), [browser-tests.md](docs/browser-tests.md).
+Критерии покрытия и независимые эталоны/допуски расстояний — [testing.md](docs/testing.md).
 Дополнительные Maven-флаги — через `MAVEN_ARGS`.
 Обновляй эти инструкции при изменении реальных команд и условий запуска.
 
