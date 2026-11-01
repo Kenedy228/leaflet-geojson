@@ -1,0 +1,25 @@
+# Local configuration and agent state
+.env
+.env.*
+!.env.example
+.token-optimizer
+.superpowers/
+docs/superpowers/
+.worktrees/
+
+# Build output and dependencies
+**/target/
+**/node_modules/
+frontend/dist/
+.mvn/wrapper/maven-wrapper.jar
+**/__pycache__/
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+Thumbs.db
+*.log
