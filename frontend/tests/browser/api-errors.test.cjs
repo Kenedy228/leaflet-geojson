@@ -5,6 +5,7 @@ const { chromium } = require("playwright");
 const {
   baseURL,
   editor,
+  layerURL,
   points,
   activate,
   until,
@@ -74,7 +75,7 @@ test("distance and layer failures display API messages and can be retried", asyn
   const { page } = await editor(browser, t);
   const scriptErrors = [];
   page.on("pageerror", (error) => scriptErrors.push(error.message));
-  await page.route("**/api/v1/osm/roads", (route) =>
+  await page.route(layerURL("roads"), (route) =>
     route.fulfill({
       status: 500,
       json: { code: "internal_error", message: "Дороги временно недоступны" },
@@ -87,7 +88,7 @@ test("distance and layer failures display API messages and can be retried", asyn
       /Дороги временно недоступны/,
     ),
   );
-  await page.unroute("**/api/v1/osm/roads");
+  await page.unroute(layerURL("roads"));
   await page
     .getByRole("button", { name: "Повторить загрузку: Дороги" })
     .click();

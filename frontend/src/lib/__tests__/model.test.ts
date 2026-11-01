@@ -279,3 +279,76 @@ describe("logout and rejected write preflight", () => {
     },
   );
 });
+
+describe("viewport layer loading", () => {
+  it("debounces movement, aborts old requests and ignores late results while retaining route and drafts", async () => {
+    vi.useFakeTimers();
+    const api = new Api();
+    const old = deferred<GeoItem[]>();
+    const get = vi
+      .spyOn(api, "layer")
+      .mockReturnValueOnce(old.promise)
+      .mockResolvedValue([]);
+    const m = new AppModel(api);
+    const first = m.toggleLayer("points", true);
+    m.access = session;
+    m.setAddMode(true);
+    m.addDraft(52, 35);
+    m.setDistanceMode(true);
+    m.clickPoint(point);
+    const snapshot = JSON.parse(JSON.stringify(m.selected[0]));
+    m.setViewport({ bbox: [30, 50, 40, 60], zoom: 10 });
+    expect(get.mock.calls[0]?.[1]?.aborted).toBe(true);
+    m.setViewport({ bbox: [40, 50, 50, 60], zoom: 11 });
+    await vi.advanceTimersByTimeAsync(150);
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(get.mock.calls[1]?.[2]).toEqual({
+      bbox: [40, 50, 50, 60],
+      zoom: 11,
+    });
+    old.resolve([point]);
+    await first;
+    expect(m.layers.points.data).toEqual([]);
+    expect(m.viewport).toEqual({ bbox: [40, 50, 50, 60], zoom: 11 });
+    expect(m.points).toEqual([]);
+    expect(m.selected[0]).toEqual(snapshot);
+    expect(m.drafts).toHaveLength(1);
+    m.destroy();
+    vi.useRealTimers();
+  });
+  it("filters saved overlays by a wrapped viewport and cancels pending refresh on destroy", async () => {
+    vi.useFakeTimers();
+    const api = new Api();
+    const get = vi.spyOn(api, "layer").mockResolvedValue([]);
+    vi.spyOn(api, "session").mockResolvedValue(session);
+    vi.spyOn(api, "save").mockResolvedValue([point]);
+    const m = new AppModel(api);
+    await m.refreshSession();
+    await m.toggleLayer("points", true);
+    m.setAddMode(true);
+    m.addDraft(52, 35);
+    await m.save();
+    expect(m.points).toHaveLength(1);
+    m.setViewport({ bbox: [170, -70, -170, 70], zoom: 4 });
+    expect(m.points).toEqual([]);
+    m.destroy();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(get).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+  it("surfaces a whole-layer limit error and retries the current viewport", async () => {
+    const api = new Api();
+    const get = vi
+      .spyOn(api, "layer")
+      .mockRejectedValueOnce(new ApiError(413, "Приблизьте карту."))
+      .mockResolvedValue([]);
+    const m = new AppModel(api);
+    await m.toggleLayer("roads", true);
+    expect(m.layers.roads.error).toBe("Приблизьте карту.");
+    expect(m.layers.roads.data).toEqual([]);
+    await m.toggleLayer("roads", true);
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(m.layers.roads.error).toBe("");
+    m.destroy();
+  });
+});

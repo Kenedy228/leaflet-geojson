@@ -6,6 +6,7 @@ import type {
   GeoItem,
   LayerName,
   Session,
+  Viewport,
 } from "./types";
 const root = "/api/v1/osm";
 export class ApiError extends Error {
@@ -214,8 +215,14 @@ export class Api {
       throw invalid();
     return s as unknown as Session;
   }
-  async layer(name: LayerName, signal?: AbortSignal) {
-    return decodeItems(await this.request(`${root}/${name}`, {}, signal), name);
+  async layer(name: LayerName, signal?: AbortSignal, viewport?: Viewport) {
+    const query = viewport
+      ? `?${new URLSearchParams({ bbox: viewport.bbox.join(","), zoom: String(viewport.zoom) })}`
+      : "";
+    return decodeItems(
+      await this.request(`${root}/${name}${query}`, {}, signal),
+      name,
+    );
   }
   async save(drafts: Draft[], session: Session, signal?: AbortSignal) {
     try {

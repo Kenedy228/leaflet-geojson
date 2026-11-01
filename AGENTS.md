@@ -81,6 +81,7 @@ make lint          # ESLint frontend и браузерных тестов
 make format-check  # Prettier frontend и Spotless Java
 make format        # Применить форматирование
 make ci            # Lint, формат, verify и браузерные тесты
+make benchmark-spatial # Synthetic dataset, SQL/HTTP/EXPLAIN; отдельная tmpfs БД
 make dev-frontend  # Vite HMR с API proxy; см. docs/frontend.md
 make build         # Vite build и JAR
 ```
@@ -115,6 +116,9 @@ Leaflet JS/CSS bundled, CDN-fixtures и Bootstrap больше не исполь
 Тесты отключают тайлы; runtime-код не предоставляет глобальный API для тестов.
 Подробности — [frontend.md](docs/frontend.md), [browser-tests.md](docs/browser-tests.md).
 Критерии покрытия и независимые эталоны/допуски расстояний — [testing.md](docs/testing.md).
+Viewport bbox/zoom, лимиты 500 объектов и 5000/20000 вершин, clipping/simplification,
+2 с query budget и benchmark — [spatial-queries.md](docs/spatial-queries.md).
+Не заменяй 413 молчаливым truncation. Distance2..1000 выполняется одним SQL.
 Дополнительные Maven-флаги — через `MAVEN_ARGS`.
 Обновляй эти инструкции при изменении реальных команд и условий запуска.
 

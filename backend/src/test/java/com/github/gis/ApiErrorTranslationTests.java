@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.github.gis.controllers.OSMController;
+import com.github.gis.geo.SpatialQuery;
+import com.github.gis.geo.SpatialService;
 import com.github.gis.points.PointService;
 import com.github.gis.security.EditingAccess;
 import com.github.gis.security.SecurityConfiguration;
@@ -15,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -25,11 +26,11 @@ class ApiErrorTranslationTests {
   @Autowired MockMvc mvc;
   // These exercise error translation; real SQL rollback is covered in PointIdentityTests.
   @MockitoBean PointService points;
-  @MockitoBean JdbcTemplate jdbc;
+  @MockitoBean SpatialService spatial;
 
   @Test
   void unavailableDatabaseHasSafe503WithoutConnectionDetails() throws Exception {
-    when(points.list())
+    when(spatial.points(SpatialQuery.world()))
         .thenThrow(new DataAccessResourceFailureException("jdbc:private-test-secret"));
     mvc.perform(get("/api/v1/osm/points"))
         .andExpect(status().isServiceUnavailable())
@@ -40,7 +41,8 @@ class ApiErrorTranslationTests {
 
   @Test
   void unexpectedExceptionHasSafe500WithoutInternalMessage() throws Exception {
-    when(points.list()).thenThrow(new IllegalStateException("stack/private-test-secret"));
+    when(spatial.points(SpatialQuery.world()))
+        .thenThrow(new IllegalStateException("stack/private-test-secret"));
     mvc.perform(get("/api/v1/osm/points"))
         .andExpect(status().isInternalServerError())
         .andExpect(jsonPath("$.code").value("internal_error"))

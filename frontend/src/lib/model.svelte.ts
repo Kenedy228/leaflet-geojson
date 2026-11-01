@@ -5,6 +5,7 @@ import type {
   GeoItem,
   LayerName,
   Session,
+  Viewport,
 } from "./types";
 interface LayerState {
   visible: boolean;
@@ -50,6 +51,8 @@ export class AppModel {
   deleteStatus = $state("");
   private confirmed = $state<GeoItem[]>([]);
   private deleted = $state<string[]>([]);
+  viewport = $state<Viewport>({ bbox: [-180, -90, 180, 90], zoom: 22 });
+  private viewportTimer: ReturnType<typeof setTimeout> | undefined;
   private sequence = 0;
   private alive = true;
   private lifecycle = new AbortController();
@@ -74,7 +77,18 @@ export class AppModel {
     this.deleted.forEach((id) => {
       delete items[id];
     });
-    return Object.values(items);
+    const [west, south, east, north] = this.viewport.bbox;
+    return Object.values(items).filter((point) => {
+      if (point.geojson.type !== "Point") return false;
+      const [lng, lat] = point.geojson.coordinates;
+      return (
+        lng !== undefined &&
+        lat !== undefined &&
+        lat >= south &&
+        lat <= north &&
+        (west <= east ? lng >= west && lng <= east : lng >= west || lng <= east)
+      );
+    });
   }
   async refreshSession() {
     const version = ++this.sessionVersion;
@@ -97,6 +111,43 @@ export class AppModel {
       throw error;
     }
   }
+  setViewport(viewport: Viewport) {
+    if (
+      !this.alive ||
+      JSON.stringify(this.viewport) === JSON.stringify(viewport)
+    )
+      return;
+    this.viewport = { bbox: [...viewport.bbox], zoom: viewport.zoom };
+    clearTimeout(this.viewportTimer);
+    for (const name of Object.keys(this.layers) as LayerName[]) {
+      this.requests[name]?.abort();
+      this.versions[name]++;
+      this.layers[name].data = [];
+      this.layers[name].error = "";
+      this.layers[name].loading = this.layers[name].visible;
+    }
+    const versions = { ...this.versions };
+    if (Object.values(this.layers).some((state) => state.visible))
+      this.viewportTimer = setTimeout(() => {
+        this.viewportTimer = undefined;
+        for (const name of Object.keys(this.layers) as LayerName[])
+          if (
+            this.layers[name].visible &&
+            this.versions[name] === versions[name]
+          )
+            void this.toggleLayer(name, true);
+      }, 150);
+  }
+  // A map can unmount independently of the owning application model.
+  cancelViewportRefresh() {
+    clearTimeout(this.viewportTimer);
+    this.viewportTimer = undefined;
+    for (const name of Object.keys(this.layers) as LayerName[]) {
+      this.requests[name]?.abort();
+      this.versions[name]++;
+      this.layers[name].loading = false;
+    }
+  }
   async toggleLayer(name: LayerName, visible: boolean) {
     const state = this.layers[name];
     this.requests[name]?.abort();
@@ -117,7 +168,10 @@ export class AppModel {
     this.requests[name] = request;
     state.loading = true;
     try {
-      const data = await this.api.layer(name, request.signal);
+      const data = await this.api.layer(name, request.signal, {
+        bbox: [...this.viewport.bbox],
+        zoom: this.viewport.zoom,
+      });
       if (this.alive && this.versions[name] === version && state.visible) {
         state.data = data;
         if (name === "points") {
@@ -342,6 +396,7 @@ export class AppModel {
   }
   destroy() {
     this.alive = false;
+    this.cancelViewportRefresh();
     this.sessionVersion++;
     this.lifecycle.abort();
     Object.values(this.requests).forEach((request) => request.abort());

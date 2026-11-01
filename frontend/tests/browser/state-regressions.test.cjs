@@ -4,6 +4,7 @@ const { chromium } = require("playwright");
 const AxeBuilder = require("@axe-core/playwright").default;
 const {
   editor,
+  layerURL,
   until,
   assertEventually,
   drafts,
@@ -32,7 +33,7 @@ for (const layer of ["points", "roads", "polygons"]) {
     const { page } = await editor(browser, t);
     const first = gate();
     let calls = 0;
-    await page.route(`**/api/v1/osm/${layer}`, async (route) => {
+    await page.route(layerURL(layer), async (route) => {
       const response = await route.fetch();
       const data = await response.json();
       const call = ++calls;
@@ -72,7 +73,7 @@ for (const layer of ["points", "roads", "polygons"]) {
   test(`${layer}: a delayed response cannot make an unchecked layer visible`, async (t) => {
     const { page } = await editor(browser, t);
     const delayed = gate();
-    await page.route(`**/api/v1/osm/${layer}`, async (route) => {
+    await page.route(layerURL(layer), async (route) => {
       const response = await route.fetch();
       delayed.arrived();
       await delayed.wait;
@@ -93,7 +94,7 @@ for (const layer of ["points", "roads", "polygons"]) {
   for (const failure of ["offline", "invalid JSON"]) {
     test(`${layer}: ${failure} is visible and retry reloads real geometry`, async (t) => {
       const { page } = await editor(browser, t);
-      await page.route(`**/api/v1/osm/${layer}`, (route) =>
+      await page.route(layerURL(layer), (route) =>
         failure === "offline"
           ? route.abort("internetdisconnected")
           : route.fulfill({ contentType: "application/json", body: "{" }),
@@ -111,7 +112,7 @@ for (const layer of ["points", "roads", "polygons"]) {
         ).trim().length > 0,
       );
       assert.equal(await page.locator(paths).count(), 0);
-      await page.unroute(`**/api/v1/osm/${layer}`);
+      await page.unroute(layerURL(layer));
       await retry.click();
       await page.locator(paths).first().waitFor();
       assert.equal(await page.locator(`.${layer}-control`).isChecked(), true);

@@ -18,11 +18,12 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Общие точки",
+            "description": "Complete bounded display layer; no success envelope.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
+                  "maxItems": 500,
                   "items": {
                     "$ref": "#/components/schemas/Point"
                   }
@@ -31,7 +32,7 @@
             }
           },
           "403": {
-            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
             "content": {
               "application/json": {
                 "schema": {
@@ -41,7 +42,7 @@
             }
           },
           "500": {
-            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
             "content": {
               "application/json": {
                 "schema": {
@@ -51,7 +52,37 @@
             }
           },
           "503": {
-            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "description": "spatial_query_timeout после 2 с бюджета либо service_unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_spatial_query: некорректный, пустой, повторяющийся или nonfinite bbox/zoom.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "spatial_limit_exceeded (>500 объектов) или spatial_geometry_limit_exceeded (>5000 вершин/объект либо>20000/слой). Сузить bbox/приблизить карту; частичного успеха нет.",
             "content": {
               "application/json": {
                 "schema": {
@@ -60,7 +91,16 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Bbox"
+          },
+          {
+            "$ref": "#/components/parameters/MapZoom"
+          }
+        ],
+        "description": "Полный подходящий набор только при≤500 source-объектов в bbox. При превышении 413 spatial_limit_exceeded, без частичного успеха. GiST/точный spatial predicate в CRS хранения до GeoJSON. Бюджет SQL2 с; timeout503 spatial_query_timeout. Общий лимит для именованных OSM-точек 3857 и пользовательских 4326. Точки остаются точными, userpoints включают допустимые полюса; OSM bbox обрезается по±85.0511287798066."
       }
     },
     "/api/v1/osm/points/add": {
@@ -283,7 +323,7 @@
       "post": {
         "summary": "Геодезические расстояния между последовательными парами точек",
         "security": [],
-        "description": "Публичный SELECT-only расчёт. Единственный POST, исключённый из CSRF. WGS84 geography, метры, сумма сегментов; повторяющиеся координаты могут давать 0. Не автомобильный маршрут.",
+        "description": "Публичный SELECT-only расчёт. Единственный POST, исключённый из CSRF. WGS84 geography, метры, сумма сегментов; повторяющиеся координаты могут давать 0. Не автомобильный маршрут. Максимум 1000 точек. Все последовательные сегменты — один параметризованный SQL с WGS84 geography, сохранением порядка и нулевых участков. Тот же 2 с query budget,503 spatial_query_timeout. Максимум 1000 точек. Все последовательные сегменты — один параметризованный SQL с WGS84 geography, сохранением порядка и нулевых участков. Тот же 2 с query budget,503 spatial_query_timeout. Максимум 1000 точек. Все последовательные сегменты — один параметризованный SQL с WGS84 geography, сохранением порядка и нулевых участков. Тот же 2 с query budget,503 spatial_query_timeout.",
         "requestBody": {
           "required": true,
           "content": {
@@ -437,6 +477,188 @@
           }
         }
       }
+    },
+    "/api/v1/osm/roads": {
+      "get": {
+        "summary": "Read bounded roads",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Complete bounded display layer; no success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "maxItems": 500,
+                  "items": {
+                    "$ref": "#/components/schemas/Road"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_spatial_query: некорректный, пустой, повторяющийся или nonfinite bbox/zoom.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "spatial_limit_exceeded (>500 объектов) или spatial_geometry_limit_exceeded (>5000 вершин/объект либо>20000/слой). Сузить bbox/приблизить карту; частичного успеха нет.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "spatial_query_timeout после 2 с бюджета либо service_unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Bbox"
+          },
+          {
+            "$ref": "#/components/parameters/MapZoom"
+          }
+        ],
+        "description": "Полный подходящий набор только при≤500 source-объектов в bbox. При превышении 413 spatial_limit_exceeded, без частичного успеха. GiST/точный spatial predicate в CRS хранения до GeoJSON. Бюджет SQL2 с; timeout503 spatial_query_timeout. Дороги требуют highway, полигоны — name. В viewport геометрия обрезается в 3857, сохраняется нужная размерность и topology; simplify tolerance=max(0.05,156543.03392804097/2^zoom) метров WebMercator (1pixel). Empty/boundary-only части меньшей размерности исключаются. Максимум 5000 выходных вершин/объект и 20000/слой, превышение 413 spatial_geometry_limit_exceeded. OSM bbox обрезается по±85.0511287798066."
+      }
+    },
+    "/api/v1/osm/polygons": {
+      "get": {
+        "summary": "Read bounded polygons",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Complete bounded display layer; no success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "maxItems": 500,
+                  "items": {
+                    "$ref": "#/components/schemas/Polygon"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_spatial_query: некорректный, пустой, повторяющийся или nonfinite bbox/zoom.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "spatial_limit_exceeded (>500 объектов) или spatial_geometry_limit_exceeded (>5000 вершин/объект либо>20000/слой). Сузить bbox/приблизить карту; частичного успеха нет.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "spatial_query_timeout после 2 с бюджета либо service_unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Bbox"
+          },
+          {
+            "$ref": "#/components/parameters/MapZoom"
+          }
+        ],
+        "description": "Полный подходящий набор только при≤500 source-объектов в bbox. При превышении 413 spatial_limit_exceeded, без частичного успеха. GiST/точный spatial predicate в CRS хранения до GeoJSON. Бюджет SQL2 с; timeout503 spatial_query_timeout. Дороги требуют highway, полигоны — name. В viewport геометрия обрезается в 3857, сохраняется нужная размерность и topology; simplify tolerance=max(0.05,156543.03392804097/2^zoom) метров WebMercator (1pixel). Empty/boundary-only части меньшей размерности исключаются. Максимум 5000 выходных вершин/объект и 20000/слой, превышение 413 spatial_geometry_limit_exceeded. OSM bbox обрезается по±85.0511287798066."
+      }
     }
   },
   "components": {
@@ -481,7 +703,11 @@
               "payload_too_large",
               "unsupported_media_type",
               "internal_error",
-              "service_unavailable"
+              "service_unavailable",
+              "invalid_spatial_query",
+              "spatial_limit_exceeded",
+              "spatial_geometry_limit_exceeded",
+              "spatial_query_timeout"
             ]
           },
           "message": {
@@ -658,6 +884,101 @@
             "minimum": 0,
             "description": "Legacy v1 camelCase, сохранён для совместимости."
           }
+        }
+      },
+      "Road": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "osm_id",
+          "name",
+          "highway",
+          "geojson"
+        ],
+        "properties": {
+          "osm_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Legacy reference ID, may exceed JavaScript Number precision. The UI does not convert it into point identity."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "geojson": {
+            "type": "string",
+            "description": "GeoJSON geometry encoded as JSON string; WGS84 [lng,lat]. Clipped and simplified for display using bbox/zoom."
+          },
+          "highway": {
+            "type": "string"
+          }
+        }
+      },
+      "Polygon": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "osm_id",
+          "name",
+          "leisure_type",
+          "landuse_type",
+          "geojson"
+        ],
+        "properties": {
+          "osm_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Legacy reference ID, may exceed JavaScript Number precision. The UI does not convert it into point identity."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "geojson": {
+            "type": "string",
+            "description": "GeoJSON geometry encoded as JSON string; WGS84 [lng,lat]. Clipped and simplified for display using bbox/zoom."
+          },
+          "leisure_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "landuse_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "parameters": {
+      "Bbox": {
+        "name": "bbox",
+        "in": "query",
+        "required": false,
+        "description": "WGS84 west,south,east,north: четыре конечных десятичных числа (exponent допустим), долготы [-180,180], широты [-90,90], south<north. west>east пересекает антимеридиан; нулевая ширина, включая 180→-180, недопустима. Повторение bbox даёт 400. Без bbox — весь мир с теми же лимитами, не безлимитный экспорт.",
+        "schema": {
+          "type": "string",
+          "default": "-180,-90,180,90"
+        },
+        "example": "35.3,52.3,35.4,52.4"
+      },
+      "MapZoom": {
+        "name": "zoom",
+        "in": "query",
+        "required": false,
+        "description": "Целое 0..22; повторение/неверный формат даёт 400. Влияет только на display-детализацию reference-геометрии; координаты точек и distance не упрощаются.",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 22,
+          "default": 22
         }
       }
     }

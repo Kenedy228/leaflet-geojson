@@ -73,6 +73,7 @@ make lint          # ESLint frontend и браузерных тестов
 make format-check  # Prettier frontend и Spotless Java
 make format        # Применить форматирование
 make ci            # Lint, формат, verify и браузерные тесты
+make benchmark-spatial # Изолированные SQL/HTTP измерения и EXPLAIN
 make dev-frontend  # Vite с HMR и same-origin API proxy
 make build         # Vite build и JAR без запуска тестов
 ```
@@ -85,6 +86,7 @@ SQL перед `make verify` не требуется. Для внешнего т
 Для изменений popup и UI сохранения точек дополнительно запускай `make test-browser`.
 [Подготовка и границы браузерной проверки](docs/browser-tests.md).
 [Карта покрытия API/PostGIS/UI и численные эталоны](docs/testing.md).
+[Ограничения bbox/детализации и воспроизводимые измерения](docs/spatial-queries.md).
 
 [Контракт ошибок и валидации](docs/api-errors.md), [OpenAPI изменённых маршрутов](docs/openapi.json).
 
