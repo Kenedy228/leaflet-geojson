@@ -15,17 +15,33 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ContextConfiguration;
 
 /** Explicit opt-in via make benchmark-spatial, not a default Surefire *Tests class. */
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {"EDITING_ENABLED=false", "CORS_ALLOWED_ORIGINS="})
+@ContextConfiguration(initializers = SpatialQueryBenchmark.OwnedDatabaseOnly.class)
 class SpatialQueryBenchmark {
+  // Fail before DataSource/Flyway creation, rather than after Spring has connected to a database.
+  static class OwnedDatabaseOnly
+      implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+    @Override
+    public void initialize(ConfigurableApplicationContext context) {
+      if (!"1".equals(System.getenv("SPATIAL_BENCHMARK_ISOLATED"))) {
+        throw new IllegalStateException(
+            "Use make benchmark-spatial with its owned temporary database");
+      }
+    }
+  }
+
   @Autowired JdbcTemplate jdbc;
   @Autowired ObjectMapper mapper;
   @Autowired TestRestTemplate client;
@@ -33,9 +49,6 @@ class SpatialQueryBenchmark {
 
   @Test
   void measureActualProductionSqlAndHttpOnOwnedDataset() throws Exception {
-    assertThat(System.getenv("SPATIAL_BENCHMARK_ISOLATED"))
-        .as("Use make benchmark-spatial; never run this fixture on a personal database")
-        .isEqualTo("1");
     seed();
     var report = new LinkedHashMap<String, Object>();
     report.put("recorded_at_utc", java.time.Instant.now().toString());
