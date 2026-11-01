@@ -5,6 +5,8 @@ const addPointPointsContainer = document.querySelector(
 );
 
 const saveNewPointsControl = document.querySelector(".add-point-save");
+const pointSaveStatus = document.querySelector(".point-save-status");
+const unconfirmedSaveMessage = "Сервер не подтвердил созданные точки. Черновики сохранены; проверьте сохранённые точки перед повторной отправкой.";
 
 let addPointMode = false;
 let newMarkers = [];
@@ -71,24 +73,20 @@ addPointPointsContainer.addEventListener("click", function (e) {
     const input = row.querySelector("input");
     if (!input) return;
 
-    const newName = input.value;
-
-    found.name = newName;
-
-    const popup = document.createElement("span");
-    popup.textContent = newName;
-    found.marker.bindPopup(popup);
+    setDraftName(found, input.value);
   }
 });
 
 saveNewPointsControl.addEventListener("click", async (e) => {
   if (saveNewPointsControl.disabled) return;
   if (newMarkers.length === 0) {
-    alert("Нет новых точек для отправки");
+    pointSaveStatus.textContent = "Нет новых точек для отправки";
     return;
   }
 
   const pending = [...newMarkers];
+  // The batch uses the visible input, even if its preview check button was not pressed.
+  pending.forEach((draft) => setDraftName(draft, draft.row.querySelector("input").value));
   const payload = pending.map((m) => ({
     name: m.name,
     lat: m.marker.getLatLng().lat,
@@ -96,6 +94,7 @@ saveNewPointsControl.addEventListener("click", async (e) => {
   }));
 
   saveNewPointsControl.disabled = true;
+  pointSaveStatus.textContent = "Сохранение точек…";
   pendingPointWrites.create = true;
   pending.forEach((draft) => setDraftDisabled(draft, true));
   try {
@@ -104,13 +103,21 @@ saveNewPointsControl.addEventListener("click", async (e) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error("Не удалось сохранить точки");
-    const result = await res.json();
-    if (result.inserted !== pending.length || !Array.isArray(result.points) ||
+    if (!res.ok) {
+      throw new Error(res.status === 400
+        ? "Пакет отклонён. Проверьте: 1–1000 точек, непустые названия до 255 символов и допустимые координаты. Черновики сохранены."
+        : res.status >= 500
+          ? "Ошибка сервера при сохранении пакета. Черновики сохранены; повторите попытку."
+          : `Не удалось сохранить пакет (HTTP ${res.status}). Черновики сохранены.`);
+    }
+    let result;
+    try { result = await res.json(); } catch { throw new Error(unconfirmedSaveMessage); }
+    if (!result || result.inserted !== pending.length || !Array.isArray(result.points) ||
         result.points.length !== pending.length ||
-        result.points.some((point) => point.source !== "user" ||
-          typeof point.id !== "string" || !point.id.startsWith("user:"))) {
-      throw new Error("Сервер не подтвердил идентификаторы созданных точек");
+        result.points.some((point) => !point || point.source !== "user" ||
+          typeof point.id !== "string" || !/^user:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(point.id)) ||
+        new Set(result.points.map((point) => point.id)).size !== pending.length) {
+      throw new Error(unconfirmedSaveMessage);
     }
     const savedIds = new Set(pending.map((draft) => draft.id));
     pending.forEach((draft) => {
@@ -119,15 +126,24 @@ saveNewPointsControl.addEventListener("click", async (e) => {
     });
     newMarkers = newMarkers.filter((draft) => !savedIds.has(draft.id));
     if (pointsControl.checked) result.points.forEach(addPointToLayer);
-    alert("Точки успешно добавлены на сервер");
+    pointSaveStatus.textContent = `Сохранено точек: ${result.inserted}.`;
   } catch (error) {
-    alert(error.message || "Ошибка при добавлении точек");
+    pointSaveStatus.textContent = error instanceof TypeError
+      ? "Не удалось получить подтверждение от сервера. Черновики сохранены; проверьте сохранённые точки перед повторной отправкой."
+      : error.message || unconfirmedSaveMessage;
   } finally {
     pendingPointWrites.create = false;
     pending.forEach((draft) => setDraftDisabled(draft, false));
     saveNewPointsControl.disabled = !accessState.can_edit;
   }
 });
+
+function setDraftName(draft, name) {
+  draft.name = name;
+  const popup = document.createElement("span");
+  popup.textContent = name;
+  draft.marker.bindPopup(popup);
+}
 
 function setDraftDisabled(draft, disabled) {
   draft.row.querySelectorAll("input, button").forEach((control) => {

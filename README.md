@@ -67,7 +67,7 @@ make check         # Синтаксис JS/Python и пробельные оши
 make test-frontend # Node-регрессии без БД
 make test-infra    # CLI unit-тесты без Docker
 make install-browser # Установить зависимости браузерных тестов и Chromium
-make test-browser  # XSS-регрессии popup с отдельными PostGIS и приложением
+make test-browser  # Popup/XSS и пакетное сохранение, отдельные PostGIS и приложение
 make test          # Все тесты, отдельный временный PostGIS создаётся автоматически
 make verify        # Проверки, тесты и сборка JAR
 make build         # JAR без запуска тестов
@@ -78,7 +78,7 @@ project, tmpfs и случайный порт; после выполнения �
 SQL перед `make verify` не требуется. Для внешнего тестового контура есть явный
 `TEST_DB_URL`; не направляй его на личные/demo-данные.
 
-Для изменений popup дополнительно запускай `make test-browser`.
+Для изменений popup и UI сохранения точек дополнительно запускай `make test-browser`.
 [Подготовка и границы браузерной проверки](docs/browser-tests.md).
 
 Собранный JAR — `backend/target/gis-0.0.1-SNAPSHOT.jar`. При прямом `java -jar`

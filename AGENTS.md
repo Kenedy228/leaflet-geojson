@@ -72,7 +72,7 @@ make check         # JS/Python syntax и git diff --check
 make test-frontend # Регрессии черновиков, без Docker
 make test-infra    # CLI unit-тесты, без Docker
 make install-browser # Установить закреплённые зависимости браузерных тестов и Chromium
-make test-browser  # Popup/XSS: свой временный PostGIS и экземпляр приложения
+make test-browser  # Popup/XSS и пакетное сохранение: свой временный PostGIS и приложение
 make test          # Все тесты; свой временный PostGIS создаётся и удаляется автоматически
 make verify        # Проверки, тесты и JAR
 make build         # Только сборка JAR
@@ -101,8 +101,10 @@ Restore заменяет БД: останови backend, проверь файл
 
 У frontend пока нет npm-сборки, lint и TypeScript; Node-регрессии в `frontend/tests/`
 не заменяют браузерные проверки. `frontend/package.json` пока содержит только
-браузерные test dependencies. `make test-browser` обязателен для изменений popup;
+браузерные test dependencies. `make test-browser` обязателен для изменений popup и UI сохранения;
 он не входит в обычный `make verify`. Подготовка — [browser-tests.md](docs/browser-tests.md).
+При обновлении Leaflet/Bootstrap синхронизируй версии dev-fixtures, их URL и SRI;
+browser tests используют настоящие distribution-файлы вместо CDN и не проверяют тайлы.
 Дополнительные Maven-флаги — через `MAVEN_ARGS`.
 Обновляй эти инструкции при изменении реальных команд и условий запуска.
 

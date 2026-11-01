@@ -2,37 +2,15 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const AxeBuilder = require('@axe-core/playwright').default;
+const {baseURL, editor: createEditor} = require('./support.cjs');
 
-const baseURL = process.env.POPUP_TEST_BASE_URL;
-if (process.env.POPUP_TEST_ISOLATED !== '1' || !baseURL ||
-    new URL(baseURL).hostname !== '127.0.0.1') {
-  throw new Error('Run make test-browser: tests require the disposable local application');
-}
 const payload = `<b>Кавычки " ' &</b><img src="/__popup_test_missing" onerror="window.__popupXss=true"><svg onload="window.__popupXss=true"></svg>`;
 let browser;
 test.before(async () => { browser = await chromium.launch({headless: true}); });
 test.after(async () => { await browser?.close(); });
 
 async function editor(t) {
-  const context = await browser.newContext();
-  t.after(() => context.close());
-  const token = await (await context.request.get(baseURL + '/api/v1/session')).json();
-  const login = await context.request.post(baseURL + '/login', {form: {
-    username: process.env.POPUP_TEST_EDITOR_USERNAME,
-    password: process.env.POPUP_TEST_EDITOR_PASSWORD,
-    _csrf: token.csrf_token,
-  }});
-  assert.equal(login.ok(), true);
-  const page = await context.newPage();
-  page.on('pageerror', error => console.error('Browser script error:', error.message));
-  page.on('requestfailed', request => console.error('Browser request failed:', request.url().split('?')[0], request.failure()?.errorText));
-  page.on('dialog', dialog => dialog.accept());
-  await page.addInitScript(() => { window.__popupXss = false; });
-  await page.goto(baseURL, {waitUntil: 'domcontentloaded'});
-  await page.waitForFunction(() => typeof accessState !== 'undefined' && accessState.can_edit &&
-    typeof pointsMarkers !== 'undefined' && typeof roadsMarkers !== 'undefined' &&
-    typeof polygonsMarkers !== 'undefined');
-  return {context, page};
+  return createEditor(browser, t);
 }
 
 async function literalPopup(page, expected) {

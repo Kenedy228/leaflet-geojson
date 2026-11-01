@@ -56,6 +56,12 @@ def main() -> None:
                     time.sleep(0.2)
                 else:
                     raise RuntimeError("Browser test application startup timed out")
+                # Test-only SQL fault: never install this constraint in production migrations.
+                manage.compose(env, "exec", "-T", "test-db", "psql", "-U", "gis", "-d", "gis_test",
+                               "-v", "ON_ERROR_STOP=1", input="""
+                    ALTER TABLE app.user_points ADD CONSTRAINT browser_test_batch_failure
+                    CHECK (name <> 'browser-test-db-failure');
+                    """, text=True)
                 env.update(POPUP_TEST_ISOLATED="1", POPUP_TEST_BASE_URL=base,
                            POPUP_TEST_EDITOR_USERNAME=env["EDITOR_USERNAME"],
                            POPUP_TEST_EDITOR_PASSWORD=env["EDITOR_PASSWORD"])

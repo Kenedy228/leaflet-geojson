@@ -155,6 +155,15 @@ class PointIdentityTests {
     }
 
     @Test
+    void invalidSecondPointRejectsTheEntireBatch() {
+        var response = client.postForEntity(API + "/add", List.of(input(prefix + "-valid"),
+                Map.of("name", prefix + "-missing-lat", "lng", 35.35)), JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(count("app.user_points", prefix + "-%")).isZero();
+        assertThat(count("public.planet_osm_point", prefix + "-%")).isEqualTo(1);
+    }
+
+    @Test
     void databaseFailureRollsBackTheEntireBatch() {
         String rejected = prefix + "-reject";
         jdbc.execute("ALTER TABLE app.user_points ADD CONSTRAINT reject_test_point CHECK (name <> '"
