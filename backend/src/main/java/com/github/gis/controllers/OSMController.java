@@ -5,8 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.websocket.server.PathParam;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.github.gis.points.NewPoint;
+import com.github.gis.points.Point;
+import com.github.gis.points.PointService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -16,31 +17,23 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/osm")
 public class OSMController {
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcTemplate;
+    private final PointService points;
+
+    public OSMController(JdbcTemplate jdbcTemplate, PointService points) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.points = points;
+    }
 
     @GetMapping("/points")
-    public List<Map<String, Object>> getAllPoints() {
-        String sql = """
-                SELECT name,
-                osm_id,
-                ST_AsGeoJSON(ST_Transform(way, 4326)) AS geojson
-                FROM planet_osm_point
-                WHERE name IS NOT NULL;
-                """;
-        return jdbcTemplate.queryForList(sql);
+    public List<Point> getAllPoints() {
+        return points.list();
     }
 
     @DeleteMapping("/points/{id}")
-    public void deletePoint(@PathVariable long id) {
-
-        String sql = """
-                DELETE
-                FROM planet_osm_point
-                WHERE osm_id = ?;
-                """;
-
-        jdbcTemplate.update(sql, id);
+    public ResponseEntity<Void> deletePoint(@PathVariable String id) {
+        points.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/roads")
@@ -74,43 +67,12 @@ public class OSMController {
     }
 
     @PostMapping("/points/add")
-    public ResponseEntity<?> addPoints(@RequestBody List<Map<String, Object>> points) {
+    public ResponseEntity<CreatedPoints> addPoints(@RequestBody List<NewPoint> input) {
+        List<Point> created = points.create(input);
+        return ResponseEntity.status(201).body(new CreatedPoints(created.size(), created));
+    }
 
-        String sql = """
-        INSERT INTO planet_osm_point(osm_id, name, way)
-        VALUES (?, ?, ST_Transform(ST_SetSRID(ST_MakePoint(?, ?), 4326), 3857))
-        """;
-
-        int insertedCount = 0;
-
-        for (Map<String, Object> point : points) {
-            try {
-                String name = (String) point.get("name");
-
-                if (point.get("lat") == null || point.get("lng") == null) {
-                    System.out.println("Пропущена точка: lat или lng = null -> " + point);
-                    continue;
-                }
-
-                double lat = ((Number) point.get("lat")).doubleValue();
-                double lng = ((Number) point.get("lng")).doubleValue();
-
-                long osmId = -System.currentTimeMillis(); // уникальный отрицательный ID
-
-                jdbcTemplate.update(sql, osmId, name, lng, lat);
-                insertedCount++;
-
-            } catch (Exception ex) {
-                System.out.println("Ошибка при вставке точки: " + point + " -> " + ex.getMessage());
-                ex.printStackTrace();
-            }
-        }
-
-        System.out.println("Всего успешно вставлено точек: " + insertedCount);
-        return ResponseEntity.ok(Map.of(
-                "status", "ok",
-                "inserted", insertedCount
-        ));
+    public record CreatedPoints(int inserted, List<Point> points) {
     }
 
     @PostMapping("/distances")
