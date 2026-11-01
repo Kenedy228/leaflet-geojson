@@ -5,6 +5,9 @@ import com.github.gis.points.PointService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import com.github.gis.security.SecurityConfiguration;
+import com.github.gis.security.EditingAccess;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -14,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = OSMController.class, properties =
         "CORS_ALLOWED_ORIGINS= http://localhost:5173 , https://viewer.example.test ")
+@Import({SecurityConfiguration.class, EditingAccess.class})
 class ConfiguredCorsTests {
     @Autowired MockMvc mvc;
     @MockitoBean JdbcTemplate jdbc;

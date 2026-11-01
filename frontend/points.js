@@ -41,7 +41,7 @@ function addPointToLayer(item) {
 
       layer.on("click", () => {
         if (!inSelectionMode) {
-          const canDelete = item.source === "user";
+          const canDelete = item.source === "user" && accessState.can_edit;
           deletePointControl.classList.toggle("display-none", !canDelete);
           pointToDelete = canDelete ? { id: item.id } : undefined;
           return;

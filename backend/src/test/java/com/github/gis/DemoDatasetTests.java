@@ -2,10 +2,12 @@ package com.github.gis;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,12 +21,17 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {"EDITING_ENABLED=true", "EDITOR_USERNAME=editor", "EDITOR_PASSWORD=test-editor-password-only"})
 class DemoDatasetTests {
     @Autowired private JdbcTemplate jdbc;
-    @Autowired private TestRestTemplate client;
+    private TestRestTemplate client;
+    @LocalServerPort private int port;
     private final String userName = "demo-invariant-test-" + UUID.randomUUID();
     private static final long FOREIGN_ID = 9007199254741234L;
+
+    @BeforeEach
+    void loginEditor() { client = EditorHttpClient.login(port); }
 
     @AfterEach
     void cleanOnlyTestData() {

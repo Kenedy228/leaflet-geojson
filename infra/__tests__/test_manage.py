@@ -1,4 +1,6 @@
 import importlib.util
+import contextlib
+import io
 import os
 from pathlib import Path
 import tempfile
@@ -47,6 +49,27 @@ class LocalConfigurationTests(unittest.TestCase):
             (root / '.env').write_text('export $(touch should-not-exist)\n')
             with self.assertRaises(ValueError):
                 self.manage.load_env(root, {})
+
+    def test_editor_setup_is_private_preserves_db_and_does_not_print_password(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / '.env.example').write_text('DB_PASSWORD=replace-with-your-local-password\nEDITING_ENABLED=false\nEDITOR_PASSWORD=\n')
+            self.manage.init_env(root)
+            database_password = self.manage.load_env(root, {})['DB_PASSWORD']
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.manage.init_editor(root)
+            env = self.manage.load_env(root, {})
+            self.assertEqual(env['EDITING_ENABLED'], 'true')
+            self.assertEqual(env['EDITOR_USERNAME'], 'editor')
+            self.assertGreaterEqual(len(env['EDITOR_PASSWORD']), 32)
+            self.assertNotIn(env['EDITOR_PASSWORD'], output.getvalue())
+            self.assertEqual(env['DB_PASSWORD'], database_password)
+            before = (root / '.env').read_bytes()
+            self.manage.init_editor(root)
+            self.assertEqual((root / '.env').read_bytes(), before)
+            if os.name != 'nt':
+                self.assertEqual((root / '.env').stat().st_mode & 0o777, 0o600)
 
 
 if __name__ == '__main__':

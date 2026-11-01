@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -24,18 +25,21 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {"EDITING_ENABLED=true", "EDITOR_USERNAME=editor", "EDITOR_PASSWORD=test-editor-password-only"})
 class PointIdentityTests {
     private static final String API = "/api/v1/osm/points";
     private static final long OSM_ID = 9007199254740993L;
     private static final long LEGACY_ID = -1735689600000L;
 
-    @Autowired private TestRestTemplate client;
+    private TestRestTemplate client;
+    @LocalServerPort private int port;
     @Autowired private JdbcTemplate jdbc;
     private String prefix;
 
     @BeforeEach
     void addImportedFixture() {
+        client = EditorHttpClient.login(port);
         prefix = "point-model-test-" + UUID.randomUUID();
         insertOsm(OSM_ID, prefix + "-osm");
     }

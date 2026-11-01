@@ -6,8 +6,9 @@ deletePointControl.addEventListener("click", async () => {
   if (!pointToDelete || deletePointControl.disabled) return;
   const id = pointToDelete.id;
   deletePointControl.disabled = true;
+  pendingPointWrites.delete = true;
   try {
-    const response = await fetch(serverURL + `/points/${encodeURIComponent(id)}`, {
+    const response = await pointWrite(`/points/${encodeURIComponent(id)}`, {
       method: "DELETE",
     });
     if (!response.ok) throw new Error("Не удалось удалить точку");
@@ -25,6 +26,7 @@ deletePointControl.addEventListener("click", async () => {
   } catch (error) {
     alert(error.message || "Ошибка при удалении точки");
   } finally {
-    deletePointControl.disabled = false;
+    pendingPointWrites.delete = false;
+    deletePointControl.disabled = !accessState.can_edit;
   }
 });

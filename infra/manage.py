@@ -9,6 +9,7 @@ import secrets
 import shlex
 import subprocess
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 SEED = ROOT / "backend/src/main/resources/db/demo/R__reference_dataset.sql"
@@ -52,6 +53,31 @@ def compose(env: dict[str, str], *args: str, **kwargs) -> subprocess.CompletedPr
     return subprocess.run(["docker", "compose", "--project-directory", str(ROOT),
                            "-f", str(ROOT / "infra/compose.yaml"), *args],
                           cwd=ROOT, env=env, check=True, **kwargs)
+
+
+def init_editor(root: Path) -> None:
+    if not (root / ".env").exists():
+        init_env(root)
+    env = load_env(root, {})
+    password = env.get("EDITOR_PASSWORD") or secrets.token_urlsafe(32)
+    username = env.get("EDITOR_USERNAME") or "editor"
+    if not 16 <= len(password.encode("utf-8")) <= 72 or len(username) > 64 or any(c.isspace() for c in username):
+        raise ValueError("Editor configuration requires a username and a password of 16 to 72 UTF-8 bytes")
+    updates = {"EDITING_ENABLED": "true", "EDITOR_USERNAME": username, "EDITOR_PASSWORD": password}
+    lines = [line for line in (root / ".env").read_text(encoding="utf-8").splitlines()
+             if line.partition("=")[0].strip() not in updates]
+    lines.extend(f"{key}={shlex.quote(value)}" for key, value in updates.items())
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=root,
+                                         prefix=".env.", delete=False) as output:
+            temporary = Path(output.name)
+            output.write("\n".join(lines) + "\n")
+        os.replace(temporary, root / ".env")
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    print("Editor enabled in private .env. Read EDITOR_PASSWORD locally to sign in; restart the app.")
 
 
 def require_password(env: dict[str, str]) -> None:
@@ -123,6 +149,9 @@ def main() -> None:
     command = sys.argv[1] if len(sys.argv) == 2 else ""
     if command == "init-env":
         init_env(ROOT)
+        return
+    if command == "init-editor":
+        init_editor(ROOT)
         return
     env = load_env(ROOT)
     if command in ("test", "verify"):

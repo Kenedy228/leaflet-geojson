@@ -5,6 +5,9 @@ import com.github.gis.points.PointService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import com.github.gis.security.SecurityConfiguration;
+import com.github.gis.security.EditingAccess;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -13,6 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = OSMController.class, properties = "CORS_ALLOWED_ORIGINS=")
+@Import({SecurityConfiguration.class, EditingAccess.class})
 class DefaultCorsTests {
     @Autowired MockMvc mvc;
     // CORS is the boundary under test; no spatial queries or persistence are needed.
