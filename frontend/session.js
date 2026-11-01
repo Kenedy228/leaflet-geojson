@@ -44,8 +44,9 @@ async function pointWrite(path, options) {
     headers: { ...options.headers, [session.csrf_header]: session.csrf_token },
   });
   if (response.status === 401 || response.status === 403) {
+    const message = await apiErrorMessage(response, "Сеанс или права изменились. Проверьте вход.");
     await refreshAccess();
-    throw new Error("Сеанс или права изменились. Проверьте вход; несохранённые точки сохранены в черновиках.");
+    throw new Error(message + " Несохранённые точки остаются в черновиках.");
   }
   return response;
 }

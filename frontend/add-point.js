@@ -104,11 +104,12 @@ saveNewPointsControl.addEventListener("click", async (e) => {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      throw new Error(res.status === 400
+      const fallback = res.status === 400
         ? "Пакет отклонён. Проверьте: 1–1000 точек, непустые названия до 255 символов и допустимые координаты. Черновики сохранены."
         : res.status >= 500
           ? "Ошибка сервера при сохранении пакета. Черновики сохранены; повторите попытку."
-          : `Не удалось сохранить пакет (HTTP ${res.status}). Черновики сохранены.`);
+          : `Не удалось сохранить пакет (HTTP ${res.status}). Черновики сохранены.`;
+      throw new Error(await apiErrorMessage(res, fallback));
     }
     let result;
     try { result = await res.json(); } catch { throw new Error(unconfirmedSaveMessage); }

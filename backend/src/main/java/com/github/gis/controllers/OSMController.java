@@ -1,13 +1,14 @@
 package com.github.gis.controllers;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.github.gis.points.NewPoint;
 import com.github.gis.points.Point;
 import com.github.gis.points.PointService;
+import com.github.gis.geo.DistanceRequest;
+import com.github.gis.geo.DistanceResult;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -75,9 +76,10 @@ public class OSMController {
     }
 
     @PostMapping("/distances")
-    public Map<String, Object> getDistance(@RequestBody Map<String, List<List<Double>>> body) {
-        List<List<Double>> points = body.get("points");
-        List<Map<String, Object>> lines = new ArrayList<>();
+    public DistanceResult getDistance(@RequestBody DistanceRequest body) {
+        body.validate();
+        List<List<Double>> points = body.points();
+        var lines = new ArrayList<DistanceResult.Segment>();
         double totalDistance = 0;
 
         for (int i = 0; i < points.size() - 1; i++) {
@@ -89,15 +91,10 @@ public class OSMController {
 
             Double distance = jdbcTemplate.queryForObject(sql, Double.class, p1.get(0), p1.get(1), p2.get(0), p2.get(1));
 
-            Map<String, Object> line = new HashMap<>();
-            line.put("from", p1);
-            line.put("to", p2);
-            line.put("distance", distance);
-
-            lines.add(line);
+            lines.add(new DistanceResult.Segment(p1, p2, distance));
             totalDistance += distance;
         }
 
-        return Map.of("lines", lines, "totalDistance", totalDistance);
+        return new DistanceResult(lines, totalDistance);
     }
 }

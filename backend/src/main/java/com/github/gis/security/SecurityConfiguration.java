@@ -1,6 +1,10 @@
 package com.github.gis.security;
 
 import jakarta.servlet.DispatcherType;
+import java.io.IOException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.gis.api.ApiError;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -10,6 +14,7 @@ import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.authorization.AuthorityAuthorizationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -18,6 +23,11 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.csrf.CsrfException;
+import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.web.cors.DefaultCorsProcessor;
+import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
 
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfiguration {
@@ -35,7 +45,7 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    SecurityFilterChain security(HttpSecurity http, EditingAccess access) throws Exception {
+    SecurityFilterChain security(HttpSecurity http, EditingAccess access, ObjectMapper mapper) throws Exception {
         AuthorizationManager<RequestAuthorizationContext> editor = AuthorizationManagers.allOf(
                 (authentication, context) -> new AuthorizationDecision(access.enabled()),
                 AuthorityAuthorizationManager.hasRole("EDITOR"));
@@ -62,15 +72,43 @@ public class SecurityConfiguration {
                 .exceptionHandling(errors -> errors
                         // A global custom entry point disables Spring's generated login page.
                         .defaultAuthenticationEntryPointFor((request, response, exception) -> {
-                            response.setStatus(401);
-                            response.setContentType("application/json");
-                            response.getWriter().write("{\"error\":\"authentication_required\"}");
+                            ApiError.forStatus(401).write(mapper, response, 401);
                         }, new AntPathRequestMatcher("/api/**"))
                         .accessDeniedHandler((request, response, exception) -> {
-                            response.setStatus(403);
-                            response.setContentType("application/json");
-                            response.getWriter().write("{\"error\":\"access_denied\"}");
+                            var error = exception instanceof CsrfException
+                                    ? new ApiError("invalid_csrf", "Запрос отклонён: обновите сеанс и повторите операцию.")
+                                    : ApiError.forStatus(403);
+                            error.write(mapper, response, 403);
                         }))
                 .build();
+    }
+
+    @Bean
+    CorsFilter corsFilter(HandlerMappingIntrospector introspector, ObjectMapper mapper) {
+        var filter = new CorsFilter(introspector);
+        filter.setCorsProcessor(new DefaultCorsProcessor() {
+            @Override
+            protected void rejectRequest(ServerHttpResponse response) throws IOException {
+                response.setStatusCode(org.springframework.http.HttpStatus.FORBIDDEN);
+                response.getHeaders().setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+                response.getHeaders().setCacheControl("no-store");
+                response.getBody().write(mapper.writeValueAsBytes(ApiError.forStatus(403)));
+            }
+        });
+        return filter;
+    }
+
+    @Bean
+    FilterRegistrationBean<CorsFilter> corsServletRegistration(CorsFilter corsFilter) {
+        // Only the security chain owns this filter; do not register a second servlet filter.
+        var registration = new FilterRegistrationBean<>(corsFilter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    WebSecurityCustomizer rejectedRequests(ObjectMapper mapper) {
+        return web -> web.requestRejectedHandler((request, response, exception) ->
+                ApiError.forStatus(400).write(mapper, response, 400));
     }
 }

@@ -81,6 +81,8 @@ SQL перед `make verify` не требуется. Для внешнего т
 Для изменений popup и UI сохранения точек дополнительно запускай `make test-browser`.
 [Подготовка и границы браузерной проверки](docs/browser-tests.md).
 
+[Контракт ошибок и валидации](docs/api-errors.md), [OpenAPI изменённых маршрутов](docs/openapi.json).
+
 Собранный JAR — `backend/target/gis-0.0.1-SNAPSHOT.jar`. При прямом `java -jar`
 параметры `DB_*` нужно предоставить окружением процесса: JVM сама `.env` не читает.
 Без Make команды реализованы в `python3 infra/manage.py`; Java Wrapper находится

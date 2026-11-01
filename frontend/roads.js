@@ -4,7 +4,10 @@ const roadsMarkers = L.layerGroup().addTo(map);
 roadsControl.addEventListener("click", () => {
   if (roadsControl.classList.contains("hidden")) {
     fetch(serverURL + "/roads")
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) throw new Error(await apiErrorMessage(res, "Не удалось загрузить дороги"));
+        return res.json();
+      })
       .then((data) => {
         roadsMarkers.clearLayers();
 
@@ -29,7 +32,8 @@ roadsControl.addEventListener("click", () => {
 
           roadsMarkers.addLayer(roadLayer);
         });
-      });
+      })
+      .catch((error) => alert(error.message || "Не удалось загрузить дороги"));
 
     showRoadsRelatedControls();
   } else if (roadsControl.classList.contains("visible")) {

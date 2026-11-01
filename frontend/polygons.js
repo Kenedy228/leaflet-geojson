@@ -4,7 +4,10 @@ const polygonsMarkers = L.layerGroup().addTo(map);
 polygonsControl.addEventListener("click", () => {
   if (polygonsControl.classList.contains("hidden")) {
     fetch(serverURL + "/polygons")
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) throw new Error(await apiErrorMessage(res, "Не удалось загрузить полигоны"));
+        return res.json();
+      })
       .then((data) => {
         polygonsMarkers.clearLayers();
 
@@ -31,7 +34,8 @@ polygonsControl.addEventListener("click", () => {
 
           polygonsMarkers.addLayer(polygonLayer);
         });
-      });
+      })
+      .catch((error) => alert(error.message || "Не удалось загрузить полигоны"));
 
     showPolygonsRelatedControls();
   } else if (polygonsControl.classList.contains("visible")) {
