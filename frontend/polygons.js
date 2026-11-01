@@ -23,7 +23,9 @@ polygonsControl.addEventListener("click", () => {
               fillOpacity: 0.4,
             },
             onEachFeature: function (feature, layer) {
-              layer.bindPopup(`<b>${poly.name || "Без названия"}</b>`);
+              const popup = document.createElement("b");
+              popup.textContent = poly.name || "Без названия";
+              layer.bindPopup(popup);
             },
           });
 

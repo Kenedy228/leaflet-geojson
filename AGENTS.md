@@ -71,6 +71,8 @@ make db-backup     # Приватная custom-format копия локальн�
 make check         # JS/Python syntax и git diff --check
 make test-frontend # Регрессии черновиков, без Docker
 make test-infra    # CLI unit-тесты, без Docker
+make install-browser # Установить закреплённые зависимости браузерных тестов и Chromium
+make test-browser  # Popup/XSS: свой временный PostGIS и экземпляр приложения
 make test          # Все тесты; свой временный PostGIS создаётся и удаляется автоматически
 make verify        # Проверки, тесты и JAR
 make build         # Только сборка JAR
@@ -98,7 +100,10 @@ Restore заменяет БД: останови backend, проверь файл
 Не удаляй volume или `app` ради сброса demo.
 
 У frontend пока нет npm-сборки, lint и TypeScript; Node-регрессии в `frontend/tests/`
-не заменяют браузерные проверки. Дополнительные Maven-флаги — через `MAVEN_ARGS`.
+не заменяют браузерные проверки. `frontend/package.json` пока содержит только
+браузерные test dependencies. `make test-browser` обязателен для изменений popup;
+он не входит в обычный `make verify`. Подготовка — [browser-tests.md](docs/browser-tests.md).
+Дополнительные Maven-флаги — через `MAVEN_ARGS`.
 Обновляй эти инструкции при изменении реальных команд и условий запуска.
 
 ## Правила реализации

@@ -70,7 +70,8 @@ calculateDistanceControl.addEventListener("click", (e) => {
     return;
   }
 
-  const coords = selectedMarkers.map((marker) => {
+  const selected = selectedMarkers.map(({ name, lng, lat }) => ({ name, lng, lat }));
+  const coords = selected.map((marker) => {
     return [marker.lng, marker.lat];
   });
 
@@ -89,13 +90,11 @@ calculateDistanceControl.addEventListener("click", (e) => {
           [lineData.to[1], lineData.to[0]],
         ];
         const line = L.polyline(latlngs, { color: "red" }).addTo(map);
-        line.bindPopup(
-          `Дистанция участка ${selectedMarkers[index].name}-${
-            selectedMarkers[index + 1].name
-          }: ${lineData.distance.toFixed(
-            2
-          )} м<br>Общая дистанция: ${data.totalDistance.toFixed(2)} м`
-        );
+        const popup = document.createElement("div");
+        popup.textContent = `Дистанция участка ${selected[index].name}-${selected[index + 1].name}: ${lineData.distance.toFixed(2)} м`;
+        popup.append(document.createElement("br"), document.createTextNode(
+          `Общая дистанция: ${data.totalDistance.toFixed(2)} м`));
+        line.bindPopup(popup);
         distanceLayerGroup.addLayer(line);
       });
     });

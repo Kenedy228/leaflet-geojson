@@ -21,7 +21,9 @@ roadsControl.addEventListener("click", () => {
               opacity: 0.8,
             },
             onEachFeature: function (feature, layer) {
-              layer.bindPopup(`<b>${road.name || "Без названия"}</b>`);
+              const popup = document.createElement("b");
+              popup.textContent = road.name || "Без названия";
+              layer.bindPopup(popup);
             },
           });
 
