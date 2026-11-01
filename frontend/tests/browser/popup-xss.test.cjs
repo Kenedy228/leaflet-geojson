@@ -4,10 +4,12 @@ const { chromium } = require("playwright");
 const AxeBuilder = require("@axe-core/playwright").default;
 const {
   editor,
+  baseURL,
   drafts,
   save,
   points,
   activate,
+  settlePopups,
   until,
 } = require("./support.cjs");
 
@@ -33,8 +35,8 @@ async function literalPopup(page, expected) {
   assert.notEqual(await page.title(), "XSS EXECUTED");
 }
 
-test("draft, persisted point, selection and distance names remain literal after save/reload", async (t) => {
-  const { page } = await editor(browser, t);
+test("full point lifecycle keeps names literal through save, reload, distance and persisted deletion", async (t) => {
+  const { page, context } = await editor(browser, t);
   await points(page);
   await drafts(page, [payload]);
   await activate(page.locator(".leaflet-interactive[data-draft-id]").first());
@@ -75,6 +77,7 @@ test("draft, persisted point, selection and distance names remain literal after 
       await page.locator(".leaflet-popup-content").last().textContent()
     ).includes(distance.lines[0].distance.toFixed(2)),
   );
+  await settlePopups(page);
   const axe = await new AxeBuilder({ page })
     .include(".leaflet-popup")
     .analyze();
@@ -85,6 +88,27 @@ test("draft, persisted point, selection and distance names remain literal after 
   await page.locator(".leaflet-popup-close-button").last().focus();
   await page.keyboard.press("Enter");
   await until(() => page.locator(".leaflet-popup").count(), 0);
+
+  await page.locator(".points-distance-control").uncheck();
+  await activate(marker);
+  const deleted = page.waitForResponse(
+    (response) =>
+      response.request().method() === "DELETE" && response.status() === 204,
+  );
+  await page.locator(".delete-points-control").click();
+  await deleted;
+  await until(() => marker.count(), 0);
+  const stored = await (
+    await context.request.get(baseURL + "/api/v1/osm/points")
+  ).json();
+  assert.equal(
+    stored.some((point) => point.id === data.points[0].id),
+    false,
+  );
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator(".access-logout").waitFor();
+  await points(page);
+  assert.equal(await marker.count(), 0);
 });
 
 for (const layer of ["roads", "polygons"]) {

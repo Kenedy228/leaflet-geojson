@@ -84,6 +84,7 @@ SQL перед `make verify` не требуется. Для внешнего т
 
 Для изменений popup и UI сохранения точек дополнительно запускай `make test-browser`.
 [Подготовка и границы браузерной проверки](docs/browser-tests.md).
+[Карта покрытия API/PostGIS/UI и численные эталоны](docs/testing.md).
 
 [Контракт ошибок и валидации](docs/api-errors.md), [OpenAPI изменённых маршрутов](docs/openapi.json).
 

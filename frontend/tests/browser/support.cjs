@@ -107,6 +107,22 @@ async function activate(locator) {
   await locator.focus();
   await locator.press("Enter");
 }
+async function settlePopups(page) {
+  // Axe must inspect the final colours, not Leaflet's intermediate opacity during fade-in.
+  // Checking opacity also covers the frame before the CSS transition has started.
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll(".leaflet-popup")].every(
+      (popup) =>
+        getComputedStyle(popup).opacity === "1" &&
+        popup
+          .getAnimations()
+          .every(
+            (animation) =>
+              animation.playState !== "running" && !animation.pending,
+          ),
+    ),
+  );
+}
 function gate() {
   let release, arrived;
   const wait = new Promise((resolve) => (release = resolve));
@@ -122,5 +138,6 @@ module.exports = {
   save,
   points,
   activate,
+  settlePopups,
   gate,
 };
