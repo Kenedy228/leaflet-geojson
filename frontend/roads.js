@@ -5,7 +5,10 @@ roadsControl.addEventListener("click", () => {
   if (roadsControl.classList.contains("hidden")) {
     fetch(serverURL + "/roads")
       .then(async (res) => {
-        if (!res.ok) throw new Error(await apiErrorMessage(res, "Не удалось загрузить дороги"));
+        if (!res.ok)
+          throw new Error(
+            await apiErrorMessage(res, "Не удалось загрузить дороги"),
+          );
         return res.json();
       })
       .then((data) => {

@@ -4,7 +4,7 @@
 MAVEN_ARGS ?=
 export MAVEN_ARGS BACKUP_FILE CONFIRM_RESTORE
 
-.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra install-browser test-browser test verify
+.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra install-browser test-browser test verify lint format-check format ci
 
 help:
 	@printf '%s\n' \
@@ -17,6 +17,9 @@ help:
 	  'make db-backup  Save local DB to a private backups/*.dump file' \
 	  'make db-restore BACKUP_FILE=... CONFIRM_RESTORE=YES  Restore a trusted backup' \
 	  'make check   Check frontend JavaScript syntax and Git whitespace' \
+	  'make lint / format-check  Check frontend lint and frontend/Java formatting' \
+	  'make format  Apply frontend and Java formatting' \
+	  'make ci      Run all mandatory checks including Chromium' \
 	  'make build   Build the application JAR without running tests' \
 	  'make test-frontend  Run frontend point identity regression tests' \
 	  'make install-browser  Install pinned browser test dependencies and Chromium' \
@@ -80,3 +83,20 @@ test: test-frontend test-infra
 
 verify: check test-frontend test-infra
 	python3 infra/manage.py verify
+
+lint:
+	npm --prefix frontend run lint
+
+format-check:
+	npm --prefix frontend run format:check
+	cd backend && ./mvnw $(MAVEN_ARGS) spotless:check
+
+format:
+	npm --prefix frontend run format
+	cd backend && ./mvnw $(MAVEN_ARGS) spotless:apply
+
+# Keep the full CI gate sequential even under make -j.
+ci:
+	$(MAKE) lint format-check
+	$(MAKE) verify
+	$(MAKE) test-browser

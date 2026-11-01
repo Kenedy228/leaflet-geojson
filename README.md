@@ -70,6 +70,10 @@ make install-browser # Установить зависимости браузе�
 make test-browser  # Popup/XSS и пакетное сохранение, отдельные PostGIS и приложение
 make test          # Все тесты, отдельный временный PostGIS создаётся автоматически
 make verify        # Проверки, тесты и сборка JAR
+make lint          # ESLint frontend и браузерных тестов
+make format-check  # Prettier frontend и Spotless Java
+make format        # Применить форматирование
+make ci            # Lint, формат, verify и браузерные тесты
 make build         # JAR без запуска тестов
 ```
 
@@ -121,6 +125,8 @@ Demo включает 3 точки, 2 дороги и 2 полигона из р
 
 Полное состояние и оставшиеся задачи —
 [roadmap #20](https://github.com/Kenedy228/leaflet-geojson/issues/20).
-Доработка UI, Svelte и GitHub CI ещё не завершены; это не заявление
+Доработка UI и Svelte ещё не завершены; это не заявление
 о готовом публичном production-сервисе.
 [Происхождение кода](docs/migration.md), [контракт точек](docs/user-points.md).
+
+Проверки CI и обновление зависимостей: [docs/ci.md](docs/ci.md).

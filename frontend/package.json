@@ -3,15 +3,25 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "test:browser": "node --test --test-concurrency=1 tests/browser/*.test.cjs"
+    "test:browser": "node --test --test-concurrency=1 tests/browser/*.test.cjs",
+    "lint": "eslint .",
+    "format:check": "prettier --check \"*.{js,mjs,html,css,json}\" \"tests/**/*.cjs\"",
+    "format": "prettier --write \"*.{js,mjs,html,css,json}\" \"tests/**/*.cjs\""
   },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
+    "@eslint/js": "10.0.1",
     "bootstrap": "5.3.8",
+    "eslint": "10.14.0",
+    "globals": "17.13.0",
     "leaflet": "1.9.4",
-    "playwright": "1.64.1"
+    "playwright": "1.64.1",
+    "prettier": "3.9.10"
+  },
+  "overrides": {
+    "minimatch": "11.0.1"
   }
 }

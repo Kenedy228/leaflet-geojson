@@ -10,16 +10,31 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class SessionController {
-    private final EditingAccess access;
+  private final EditingAccess access;
 
-    public SessionController(EditingAccess access) { this.access = access; }
+  public SessionController(EditingAccess access) {
+    this.access = access;
+  }
 
-    @GetMapping("/api/v1/session")
-    public ResponseEntity<Map<String, Object>> session(Authentication authentication, CsrfToken csrf) {
-        boolean canEdit = access.enabled() && authentication != null && authentication.getAuthorities()
-                .stream().anyMatch(role -> role.getAuthority().equals("ROLE_EDITOR"));
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(Map.of(
-                "editing_enabled", access.enabled(), "can_edit", canEdit,
-                "csrf_header", csrf.getHeaderName(), "csrf_token", csrf.getToken()));
-    }
+  @GetMapping("/api/v1/session")
+  public ResponseEntity<Map<String, Object>> session(
+      Authentication authentication, CsrfToken csrf) {
+    boolean canEdit =
+        access.enabled()
+            && authentication != null
+            && authentication.getAuthorities().stream()
+                .anyMatch(role -> role.getAuthority().equals("ROLE_EDITOR"));
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(
+            Map.of(
+                "editing_enabled",
+                access.enabled(),
+                "can_edit",
+                canEdit,
+                "csrf_header",
+                csrf.getHeaderName(),
+                "csrf_token",
+                csrf.getToken()));
+  }
 }

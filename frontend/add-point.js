@@ -1,12 +1,13 @@
 const addPointControl = document.querySelector(".add-point-control");
 const addPointControlPanel = document.querySelector(".add-point-control-panel");
 const addPointPointsContainer = document.querySelector(
-  ".add-point-points-container"
+  ".add-point-points-container",
 );
 
 const saveNewPointsControl = document.querySelector(".add-point-save");
 const pointSaveStatus = document.querySelector(".point-save-status");
-const unconfirmedSaveMessage = "Сервер не подтвердил созданные точки. Черновики сохранены; проверьте сохранённые точки перед повторной отправкой.";
+const unconfirmedSaveMessage =
+  "Сервер не подтвердил созданные точки. Черновики сохранены; проверьте сохранённые точки перед повторной отправкой.";
 
 let addPointMode = false;
 let newMarkers = [];
@@ -86,7 +87,9 @@ saveNewPointsControl.addEventListener("click", async (e) => {
 
   const pending = [...newMarkers];
   // The batch uses the visible input, even if its preview check button was not pressed.
-  pending.forEach((draft) => setDraftName(draft, draft.row.querySelector("input").value));
+  pending.forEach((draft) =>
+    setDraftName(draft, draft.row.querySelector("input").value),
+  );
   const payload = pending.map((m) => ({
     name: m.name,
     lat: m.marker.getLatLng().lat,
@@ -104,20 +107,36 @@ saveNewPointsControl.addEventListener("click", async (e) => {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const fallback = res.status === 400
-        ? "Пакет отклонён. Проверьте: 1–1000 точек, непустые названия до 255 символов и допустимые координаты. Черновики сохранены."
-        : res.status >= 500
-          ? "Ошибка сервера при сохранении пакета. Черновики сохранены; повторите попытку."
-          : `Не удалось сохранить пакет (HTTP ${res.status}). Черновики сохранены.`;
+      const fallback =
+        res.status === 400
+          ? "Пакет отклонён. Проверьте: 1–1000 точек, непустые названия до 255 символов и допустимые координаты. Черновики сохранены."
+          : res.status >= 500
+            ? "Ошибка сервера при сохранении пакета. Черновики сохранены; повторите попытку."
+            : `Не удалось сохранить пакет (HTTP ${res.status}). Черновики сохранены.`;
       throw new Error(await apiErrorMessage(res, fallback));
     }
     let result;
-    try { result = await res.json(); } catch { throw new Error(unconfirmedSaveMessage); }
-    if (!result || result.inserted !== pending.length || !Array.isArray(result.points) ||
-        result.points.length !== pending.length ||
-        result.points.some((point) => !point || point.source !== "user" ||
-          typeof point.id !== "string" || !/^user:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(point.id)) ||
-        new Set(result.points.map((point) => point.id)).size !== pending.length) {
+    try {
+      result = await res.json();
+    } catch {
+      throw new Error(unconfirmedSaveMessage);
+    }
+    if (
+      !result ||
+      result.inserted !== pending.length ||
+      !Array.isArray(result.points) ||
+      result.points.length !== pending.length ||
+      result.points.some(
+        (point) =>
+          !point ||
+          point.source !== "user" ||
+          typeof point.id !== "string" ||
+          !/^user:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
+            point.id,
+          ),
+      ) ||
+      new Set(result.points.map((point) => point.id)).size !== pending.length
+    ) {
       throw new Error(unconfirmedSaveMessage);
     }
     const savedIds = new Set(pending.map((draft) => draft.id));
@@ -129,9 +148,10 @@ saveNewPointsControl.addEventListener("click", async (e) => {
     if (pointsControl.checked) result.points.forEach(addPointToLayer);
     pointSaveStatus.textContent = `Сохранено точек: ${result.inserted}.`;
   } catch (error) {
-    pointSaveStatus.textContent = error instanceof TypeError
-      ? "Не удалось получить подтверждение от сервера. Черновики сохранены; проверьте сохранённые точки перед повторной отправкой."
-      : error.message || unconfirmedSaveMessage;
+    pointSaveStatus.textContent =
+      error instanceof TypeError
+        ? "Не удалось получить подтверждение от сервера. Черновики сохранены; проверьте сохранённые точки перед повторной отправкой."
+        : error.message || unconfirmedSaveMessage;
   } finally {
     pendingPointWrites.create = false;
     pending.forEach((draft) => setDraftDisabled(draft, false));

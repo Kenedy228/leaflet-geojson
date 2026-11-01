@@ -5,7 +5,10 @@ pointsControl.addEventListener("click", () => {
   if (pointsControl.classList.contains("hidden")) {
     fetch(serverURL + "/points")
       .then(async (res) => {
-        if (!res.ok) throw new Error(await apiErrorMessage(res, "Не удалось загрузить точки"));
+        if (!res.ok)
+          throw new Error(
+            await apiErrorMessage(res, "Не удалось загрузить точки"),
+          );
         return res.json();
       })
       .then((data) => {
@@ -21,7 +24,8 @@ pointsControl.addEventListener("click", () => {
 });
 
 function addPointToLayer(item) {
-  const geom = typeof item.geojson === "string" ? JSON.parse(item.geojson) : item.geojson;
+  const geom =
+    typeof item.geojson === "string" ? JSON.parse(item.geojson) : item.geojson;
   const marker = L.geoJSON(geom, {
     pointToLayer(feature, latlng) {
       return L.circleMarker(latlng, {
@@ -58,7 +62,9 @@ function addPointToLayer(item) {
         const found = selectedMarkers.some((point) => point.id === item.id);
         if (found) {
           layer.setStyle({ fillColor: "#ff7800" });
-          selectedMarkers = selectedMarkers.filter((point) => point.id !== item.id);
+          selectedMarkers = selectedMarkers.filter(
+            (point) => point.id !== item.id,
+          );
         } else {
           selectedMarkers.push(markerData);
           layer.setStyle({ fillColor: "#000000" });

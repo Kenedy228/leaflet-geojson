@@ -34,7 +34,7 @@ Backend импортирован снимком из https://github.com/Kenedy22
 Согласованная дальнейшая цель: Svelte 5 + TypeScript в строгом режиме + Vite
 в `frontend/`, архитектура, модель данных и OpenAPI в `docs/`.
 Flyway уже содержит V1/V2 пользовательской модели и V3 bootstrap OSM, а `infra/`
-поднимает локальную БД. Svelte, полный OpenAPI и GitHub CI ещё не созданы.
+поднимает локальную БД. Svelte и полный OpenAPI ещё не созданы; CI настроен в `.github/workflows/ci.yml`.
 Контракт изменённых маршрутов точек/distance/session уже находится в
 [openapi.json](docs/openapi.json); расширяй его, не создавай параллельный контракт.
 Не выдавай планируемое устройство за реализованное. Сохраняй выбранный стек;
@@ -77,6 +77,10 @@ make install-browser # Установить закреплённые завис�
 make test-browser  # Popup/XSS и пакетное сохранение: свой временный PostGIS и приложение
 make test          # Все тесты; свой временный PostGIS создаётся и удаляется автоматически
 make verify        # Проверки, тесты и JAR
+make lint          # ESLint frontend и браузерных тестов
+make format-check  # Prettier frontend и Spotless Java
+make format        # Применить форматирование
+make ci            # Lint, формат, verify и браузерные тесты
 make build         # Только сборка JAR
 ```
 
@@ -101,9 +105,8 @@ Backup/restore и необязательный импорт описаны в [i
 Restore заменяет БД: останови backend, проверь файл и требуй `CONFIRM_RESTORE=YES`.
 Не удаляй volume или `app` ради сброса demo.
 
-У frontend пока нет npm-сборки, lint и TypeScript; Node-регрессии в `frontend/tests/`
-не заменяют браузерные проверки. `frontend/package.json` пока содержит только
-браузерные test dependencies. `make test-browser` обязателен для изменений popup и UI сохранения;
+У frontend пока нет npm-сборки и TypeScript; Node-регрессии в `frontend/tests/`
+не заменяют браузерные проверки. `frontend/package.json` содержит dev dependencies браузерных тестов и ESLint/Prettier. `make test-browser` обязателен для изменений popup и UI сохранения;
 он не входит в обычный `make verify`. Подготовка — [browser-tests.md](docs/browser-tests.md).
 При обновлении Leaflet/Bootstrap синхронизируй версии dev-fixtures, их URL и SRI;
 browser tests используют настоящие distribution-файлы вместо CDN и не проверяют тайлы.
@@ -241,3 +244,5 @@ browser tests используют настоящие distribution-файлы в
 
 Процесс согласован пользователем по [Git Workflow](https://repo.dvgups.ru/docs/Разработка/Git-Workflow)
 и [Git Agent Rules](https://repo.dvgups.ru/docs/Разработка/Git-Agent-Rules).
+
+Проверки CI и обновление зависимостей: [docs/ci.md](docs/ci.md).

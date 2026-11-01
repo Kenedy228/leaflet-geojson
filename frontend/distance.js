@@ -1,21 +1,21 @@
 const selectionPoints = document.querySelector(".points-distance");
 
 const selectionPointsControl = document.querySelector(
-  ".points-distance-control"
+  ".points-distance-control",
 );
 
 const selectionPointsResetControl = document.querySelector(
-  ".points-distance-reset-control"
+  ".points-distance-reset-control",
 );
 
 const selectionPointsBlock = document.querySelector(".points-distance-info");
 
 const selectedPointsList = document.querySelector(
-  ".points-distance-selected-list"
+  ".points-distance-selected-list",
 );
 
 const calculateDistanceControl = document.querySelector(
-  ".points-distance-calculate-control"
+  ".points-distance-calculate-control",
 );
 
 let inSelectionMode = false;
@@ -31,7 +31,7 @@ selectionPointsControl.addEventListener("click", (e) => {
     selectionPointsResetControl.classList.add("display-none");
 
     selectedMarkers.forEach((point) =>
-      point.layer.setStyle({ fillColor: "#ff7800" })
+      point.layer.setStyle({ fillColor: "#ff7800" }),
     );
   } else {
     inSelectionMode = true;
@@ -57,7 +57,7 @@ selectionPointsResetControl.addEventListener("click", (e) => {
   distanceLayerGroup.clearLayers();
 
   selectedMarkers.forEach((point) =>
-    point.layer.setStyle({ fillColor: "#ff7800" })
+    point.layer.setStyle({ fillColor: "#ff7800" }),
   );
 
   selectedMarkers = [];
@@ -70,7 +70,11 @@ calculateDistanceControl.addEventListener("click", (e) => {
     return;
   }
 
-  const selected = selectedMarkers.map(({ name, lng, lat }) => ({ name, lng, lat }));
+  const selected = selectedMarkers.map(({ name, lng, lat }) => ({
+    name,
+    lng,
+    lat,
+  }));
   const coords = selected.map((marker) => {
     return [marker.lng, marker.lat];
   });
@@ -81,7 +85,10 @@ calculateDistanceControl.addEventListener("click", (e) => {
     body: JSON.stringify({ points: coords }),
   })
     .then(async (res) => {
-      if (!res.ok) throw new Error(await apiErrorMessage(res, "Не удалось рассчитать расстояние"));
+      if (!res.ok)
+        throw new Error(
+          await apiErrorMessage(res, "Не удалось рассчитать расстояние"),
+        );
       return res.json();
     })
     .then((data) => {
@@ -95,11 +102,17 @@ calculateDistanceControl.addEventListener("click", (e) => {
         const line = L.polyline(latlngs, { color: "red" }).addTo(map);
         const popup = document.createElement("div");
         popup.textContent = `Дистанция участка ${selected[index].name}-${selected[index + 1].name}: ${lineData.distance.toFixed(2)} м`;
-        popup.append(document.createElement("br"), document.createTextNode(
-          `Общая дистанция: ${data.totalDistance.toFixed(2)} м`));
+        popup.append(
+          document.createElement("br"),
+          document.createTextNode(
+            `Общая дистанция: ${data.totalDistance.toFixed(2)} м`,
+          ),
+        );
         line.bindPopup(popup);
         distanceLayerGroup.addLayer(line);
       });
     })
-    .catch((error) => alert(error.message || "Не удалось рассчитать расстояние"));
+    .catch((error) =>
+      alert(error.message || "Не удалось рассчитать расстояние"),
+    );
 });
