@@ -22,7 +22,7 @@ class FrontendResourcesTests {
 
         for (String asset : new String[]{
                 "index.css", "index.js", "points.js", "roads.js", "polygons.js",
-                "distance.js", "constraints.js", "add-point.js", "delete-point.js"
+                "distance.js", "constraints.js", "session.js", "add-point.js", "delete-point.js"
         }) {
             var response = client.getForEntity("/" + asset, String.class);
             assertThat(response.getStatusCode()).as(asset).isEqualTo(HttpStatus.OK);

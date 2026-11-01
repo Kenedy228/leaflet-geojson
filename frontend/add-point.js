@@ -11,6 +11,7 @@ let newMarkers = [];
 let nextDraftId = 0n;
 
 addPointControl.addEventListener("click", (e) => {
+  if (!accessState.can_edit) return;
   if (addPointMode) {
     addPointMode = false;
     addPointControlPanel.classList.add("display-none");
@@ -95,9 +96,10 @@ saveNewPointsControl.addEventListener("click", async (e) => {
   }));
 
   saveNewPointsControl.disabled = true;
+  pendingPointWrites.create = true;
   pending.forEach((draft) => setDraftDisabled(draft, true));
   try {
-    const res = await fetch(serverURL + "/points/add", {
+    const res = await pointWrite("/points/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -121,8 +123,9 @@ saveNewPointsControl.addEventListener("click", async (e) => {
   } catch (error) {
     alert(error.message || "Ошибка при добавлении точек");
   } finally {
+    pendingPointWrites.create = false;
     pending.forEach((draft) => setDraftDisabled(draft, false));
-    saveNewPointsControl.disabled = false;
+    saveNewPointsControl.disabled = !accessState.can_edit;
   }
 });
 

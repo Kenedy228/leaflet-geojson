@@ -18,6 +18,7 @@ function editor() {
     };
   }
   const context = vm.createContext({
+    accessState: { can_edit: true },
     document: {
       querySelector(selector) { if (!nodes.has(selector)) nodes.set(selector, node()); return nodes.get(selector); },
       createElement: node,

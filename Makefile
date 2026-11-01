@@ -4,11 +4,12 @@
 MAVEN_ARGS ?=
 export MAVEN_ARGS BACKUP_FILE CONFIRM_RESTORE
 
-.PHONY: help init-env dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra test verify
+.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra test verify
 
 help:
 	@printf '%s\n' \
 	  'make init-env  Create private .env without replacing an existing file' \
+	  'make init-editor  Enable local editor with private generated credentials' \
 	  'make dev     Start local PostGIS and frontend/API with demo data' \
 	  'make run     Start frontend/API using .env (without demo seeding)' \
 	  'make db-up / db-down  Start / stop local PostGIS, preserving its volume' \
@@ -23,6 +24,9 @@ help:
 
 init-env:
 	python3 infra/manage.py init-env
+
+init-editor:
+	python3 infra/manage.py init-editor
 
 dev:
 	python3 infra/manage.py dev

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -36,6 +36,11 @@
       <div id="map" class="mx-2"></div>
       <div class="sidebar mx-2">
         <h3 class="text-center">Панель управления</h3>
+        <section aria-label="Доступ к редактированию" class="mb-3">
+          <p class="access-status" role="status" aria-live="polite">Проверка прав доступа…</p>
+          <a class="access-login" href="/login" hidden>Войти как редактор</a>
+          <button class="access-logout btn btn-secondary" type="button" hidden>Выйти</button>
+        </section>
         <div class="form-check">
           <input
             class="form-check-input points-control hidden"
@@ -48,7 +53,7 @@
           </label>
         </div>
         <div class="d-grid gap-2 col-12 mx-auto">
-          <button class="delete-points-control btn btn-danger display-none">
+          <button class="delete-points-control btn btn-danger display-none" disabled>
             Удалить точку
           </button>
         </div>
@@ -106,9 +111,10 @@
             class="form-check-input points-distance-control"
             type="checkbox"
             value=""
-            id="flexCheckDefault"
+            id="add-point-enabled"
+            disabled
           />
-          <label class="form-check-label" for="flexCheckDefault">
+          <label class="form-check-label" for="add-point-enabled">
             Включить режим добавления новой точки
           </label>
         </div>
@@ -118,7 +124,7 @@
             <div class="add-point-points-container"></div>
           </div>
           <div class="d-grid gap-2 col-12 mx-auto">
-            <button class="add-point-save btn btn-primary text-center">
+            <button class="add-point-save btn btn-primary text-center" disabled>
               Сохранить
             </button>
           </div>
@@ -137,6 +143,7 @@
     <script src="./polygons.js"></script>
     <script src="./distance.js"></script>
     <script src="./constraints.js"></script>
+    <script src="./session.js"></script>
     <script src="./add-point.js"></script>
     <script src="./delete-point.js"></script>
   </body>
