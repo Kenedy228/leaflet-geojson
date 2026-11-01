@@ -5,7 +5,10 @@ polygonsControl.addEventListener("click", () => {
   if (polygonsControl.classList.contains("hidden")) {
     fetch(serverURL + "/polygons")
       .then(async (res) => {
-        if (!res.ok) throw new Error(await apiErrorMessage(res, "Не удалось загрузить полигоны"));
+        if (!res.ok)
+          throw new Error(
+            await apiErrorMessage(res, "Не удалось загрузить полигоны"),
+          );
         return res.json();
       })
       .then((data) => {
@@ -35,7 +38,9 @@ polygonsControl.addEventListener("click", () => {
           polygonsMarkers.addLayer(polygonLayer);
         });
       })
-      .catch((error) => alert(error.message || "Не удалось загрузить полигоны"));
+      .catch((error) =>
+        alert(error.message || "Не удалось загрузить полигоны"),
+      );
 
     showPolygonsRelatedControls();
   } else if (polygonsControl.classList.contains("visible")) {

@@ -12,23 +12,34 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
 public class StrictJsonConfiguration {
-    @Bean
-    Jackson2ObjectMapperBuilderCustomizer strictJson() {
-        return builder -> builder.postConfigurer(mapper -> {
-            mapper.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-                    DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-            mapper.getFactory().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
-            mapper.getFactory().setStreamReadConstraints(StreamReadConstraints.builder()
-                    .maxNestingDepth(16).maxStringLength(4096).maxNumberLength(64)
-                    .maxDocumentLength(4 * 1024 * 1024).build());
-            mapper.coercionConfigFor(LogicalType.Float)
-                    .setCoercion(CoercionInputShape.String, CoercionAction.Fail)
-                    .setCoercion(CoercionInputShape.EmptyString, CoercionAction.Fail)
-                    .setCoercion(CoercionInputShape.Boolean, CoercionAction.Fail);
-            mapper.coercionConfigFor(LogicalType.Textual)
-                    .setCoercion(CoercionInputShape.Integer, CoercionAction.Fail)
-                    .setCoercion(CoercionInputShape.Float, CoercionAction.Fail)
-                    .setCoercion(CoercionInputShape.Boolean, CoercionAction.Fail);
-        });
-    }
+  @Bean
+  Jackson2ObjectMapperBuilderCustomizer strictJson() {
+    return builder ->
+        builder.postConfigurer(
+            mapper -> {
+              mapper.enable(
+                  DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                  DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+              mapper.getFactory().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+              mapper
+                  .getFactory()
+                  .setStreamReadConstraints(
+                      StreamReadConstraints.builder()
+                          .maxNestingDepth(16)
+                          .maxStringLength(4096)
+                          .maxNumberLength(64)
+                          .maxDocumentLength(4 * 1024 * 1024)
+                          .build());
+              mapper
+                  .coercionConfigFor(LogicalType.Float)
+                  .setCoercion(CoercionInputShape.String, CoercionAction.Fail)
+                  .setCoercion(CoercionInputShape.EmptyString, CoercionAction.Fail)
+                  .setCoercion(CoercionInputShape.Boolean, CoercionAction.Fail);
+              mapper
+                  .coercionConfigFor(LogicalType.Textual)
+                  .setCoercion(CoercionInputShape.Integer, CoercionAction.Fail)
+                  .setCoercion(CoercionInputShape.Float, CoercionAction.Fail)
+                  .setCoercion(CoercionInputShape.Boolean, CoercionAction.Fail);
+            });
+  }
 }
