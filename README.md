@@ -26,12 +26,13 @@ HTML/CSS/JavaScript из `frontend/` в static resources приложения, �
 
 - JDK 25; проверь `java -version` и при необходимости настрой `JAVA_HOME`.
 - GNU Make и POSIX shell для корневых команд; альтернативные Maven-команды ниже.
-- Node.js для `make check`; npm-зависимостей и отдельной frontend-сборки пока нет.
+- Node.js 22 для проверок и frontend-регрессий; npm-зависимостей и отдельной frontend-сборки пока нет.
 - Доступ к Maven Central при первом запуске. Maven 3.9.11 скачивается wrapper-скриптом.
 - Подготовленная PostgreSQL/PostGIS БД с исходной OSM-схемой и данными.
 
-**Ограничение текущего этапа:** автоматического создания БД, миграций и seed пока нет
-([#2](https://github.com/Kenedy228/leaflet-geojson/issues/2)). Пустой PostgreSQL
+**Ограничение текущего этапа:** полного создания БД, миграций OSM и seed пока нет
+([#2](https://github.com/Kenedy228/leaflet-geojson/issues/2)). Flyway создаёт пользовательские
+точки в отдельной схеме `app`; для чтения импортированных слоёв пустой PostgreSQL
 недостаточен. API использует PostGIS, hstore и таблицы:
 
 | Таблица | Используемые столбцы |
@@ -40,10 +41,13 @@ HTML/CSS/JavaScript из `frontend/` в static resources приложения, �
 | `planet_osm_roads` | `osm_id`, `name`, `highway`, `way` |
 | `planet_osm_polygon` | `osm_id`, `name`, `tags` (hstore), `way` |
 
-Столбцы `way` содержат геометрию; запись точек выполняется в EPSG:3857.
-Импортированные таблицы должны иметь совместимые типы и SRID.
-Используй отдельную локальную demo-БД: текущий API изменяет OSM-таблицу точек.
-Импорт и сброс данных до появления миграций выполняются отдельно средствами БД.
+Столбцы `way` содержат геометрию. Импортированные таблицы должны иметь совместимые
+типы и SRID. Новые пользовательские точки пишутся только в `app.user_points`
+в EPSG:4326 с UUID, генерируемым БД; OSM-точки через API доступны только для чтения.
+Реквизиты должны позволять Flyway создать схему `app` и её объекты.
+Импорт OSM выполняется отдельно средствами БД; при его обновлении не сбрасывай `app`.
+Старые пользовательские записи переносятся только по явно проверенным ID:
+[модель и инструкция переноса](docs/user-points.md).
 
 ## Запуск
 
@@ -86,17 +90,29 @@ java -jar backend/target/gis-0.0.1-SNAPSHOT.jar
 
 ```sh
 make check    # Синтаксис JavaScript и пробельные ошибки в Git diff
-make test     # Backend-тесты, включая раздачу frontend; нужна подготовленная тестовая БД
+make test-frontend  # Регрессии ID черновиков, без БД
+make test     # Frontend- и backend-тесты; нужна отдельная тестовая БД
 make verify   # Проверки, тесты и сборка JAR
 ```
 
-Для тестов экспортируй реквизиты **отдельной тестовой БД**, совместимой с таблицами
-выше. Текущий набор проверяет запуск Spring и доступность frontend/API, но не
-заменяет полный набор тестов поведения из [#16](https://github.com/Kenedy228/leaflet-geojson/issues/16).
-Frontend-тесты, CI и автоматическая тестовая БД ещё не настроены.
+Для тестов нужна **отдельная пустая PostGIS-БД**, которую можно менять.
+Подготовь тестовые OSM-таблицы (не выполняй это на личной/demo-БД):
+
+```sh
+psql -h localhost -p 5432 -U gis -d gis_test -v ON_ERROR_STOP=1 \
+  -f backend/src/test/resources/fixtures/osm.sql
+```
+
+Экспортируй `DB_URL=jdbc:postgresql://localhost:5432/gis_test`, `DB_USER` и `DB_PASSWORD`.
+Flyway создаст `app` при запуске тестов. Тесты проверяют раздачу ресурсов, контракт
+идентификаторов, конкурентные вставки, удаление, транзакции и legacy-перенос.
+Fixtures описывают старую схему для тестов, не заменяют production-миграции #2.
+CI и автоматический контейнер тестовой БД пока не настроены; полный набор
+поведения развивается в [#16](https://github.com/Kenedy228/leaflet-geojson/issues/16).
 
 Без Make: проверку JS можно выполнить командой
 `for file in frontend/*.js; do node --check "$file" || exit; done`;
+frontend-регрессии — `node --test frontend/tests/*.test.cjs`;
 из `backend/` доступны `./mvnw test` и `./mvnw verify`.
 
 ## Если запуск не работает
@@ -117,7 +133,8 @@ Frontend-тесты, CI и автоматическая тестовая БД е
 Это этап объединения исходников, а не завершённая production-ready система.
 Известные дефекты сохранения, управления состоянием, безопасного вывода и прав
 на изменение данных описаны в [roadmap #20](https://github.com/Kenedy228/leaflet-geojson/issues/20).
-Проверки этого этапа и способ переноса истории приведены в [docs/migration.md](docs/migration.md).
+Проверки объединения и способ переноса истории приведены в [docs/migration.md](docs/migration.md).
+Текущая модель и контракт точек описаны в [docs/user-points.md](docs/user-points.md).
 
 Исходники backend: [leaflet-geojson-backend](https://github.com/Kenedy228/leaflet-geojson-backend).
 Карта использует данные © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright).

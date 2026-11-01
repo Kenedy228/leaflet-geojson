@@ -8,6 +8,7 @@ const saveNewPointsControl = document.querySelector(".add-point-save");
 
 let addPointMode = false;
 let newMarkers = [];
+let nextDraftId = 0n;
 
 addPointControl.addEventListener("click", (e) => {
   if (addPointMode) {
@@ -17,8 +18,6 @@ addPointControl.addEventListener("click", (e) => {
     addPointMode = true;
     addPointControlPanel.classList.remove("display-none");
   }
-
-  newMarkers = [];
 });
 
 map.on("click", function (e) {
@@ -37,7 +36,7 @@ map.on("click", function (e) {
   }).addTo(map);
 
   newMarkers.push({
-    id: Math.floor(Math.random() * 1000),
+    id: `draft:${++nextDraftId}`,
     marker: layer,
     name: "Новая точка",
   });
@@ -54,7 +53,7 @@ addPointPointsContainer.addEventListener("click", function (e) {
   const action = btn.dataset.action;
   const id = btn.dataset.id;
 
-  const found = newMarkers.find((m) => m.id == id);
+  const found = newMarkers.find((m) => m.id === id);
 
   if (!found) return;
 
@@ -75,36 +74,63 @@ addPointPointsContainer.addEventListener("click", function (e) {
 
     found.name = newName;
 
-    found.marker.bindPopup(newName);
+    const popup = document.createElement("span");
+    popup.textContent = newName;
+    found.marker.bindPopup(popup);
   }
 });
 
 saveNewPointsControl.addEventListener("click", async (e) => {
+  if (saveNewPointsControl.disabled) return;
   if (newMarkers.length === 0) {
     alert("Нет новых точек для отправки");
     return;
   }
 
-  const payload = newMarkers.map((m) => ({
+  const pending = [...newMarkers];
+  const payload = pending.map((m) => ({
     name: m.name,
     lat: m.marker.getLatLng().lat,
     lng: m.marker.getLatLng().lng,
   }));
 
-  const res = await fetch(serverURL + "/points/add", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (res.ok) {
+  saveNewPointsControl.disabled = true;
+  pending.forEach((draft) => setDraftDisabled(draft, true));
+  try {
+    const res = await fetch(serverURL + "/points/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("Не удалось сохранить точки");
+    const result = await res.json();
+    if (result.inserted !== pending.length || !Array.isArray(result.points) ||
+        result.points.length !== pending.length ||
+        result.points.some((point) => point.source !== "user" ||
+          typeof point.id !== "string" || !point.id.startsWith("user:"))) {
+      throw new Error("Сервер не подтвердил идентификаторы созданных точек");
+    }
+    const savedIds = new Set(pending.map((draft) => draft.id));
+    pending.forEach((draft) => {
+      draft.marker.remove();
+      draft.row.remove();
+    });
+    newMarkers = newMarkers.filter((draft) => !savedIds.has(draft.id));
+    if (pointsControl.checked) result.points.forEach(addPointToLayer);
     alert("Точки успешно добавлены на сервер");
-    newMarkers.forEach((m) => m.marker.setStyle({ fillColor: "#0000ff" }));
-    newMarkers = [];
-  } else {
-    alert("Ошибка при добавлении точек");
+  } catch (error) {
+    alert(error.message || "Ошибка при добавлении точек");
+  } finally {
+    pending.forEach((draft) => setDraftDisabled(draft, false));
+    saveNewPointsControl.disabled = false;
   }
 });
+
+function setDraftDisabled(draft, disabled) {
+  draft.row.querySelectorAll("input, button").forEach((control) => {
+    control.disabled = disabled;
+  });
+}
 
 function renderNewPointInList(marker) {
   const row = document.createElement("div");
@@ -136,5 +162,6 @@ function renderNewPointInList(marker) {
   row.appendChild(saveBtn);
   row.appendChild(deleteBtn);
 
+  marker.row = row;
   addPointPointsContainer.appendChild(row);
 }
