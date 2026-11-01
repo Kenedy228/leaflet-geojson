@@ -20,7 +20,7 @@ help:
 	  'make build   Build the application JAR without running tests' \
 	  'make test-frontend  Run frontend point identity regression tests' \
 	  'make install-browser  Install pinned browser test dependencies and Chromium' \
-	  'make test-browser  Run popup regressions on disposable PostGIS and app' \
+	  'make test-browser  Run popup and batch-save regressions on disposable PostGIS and app' \
 	  'make test    Run tests using a disposable, isolated PostGIS' \
 	  'make verify  Run checks, tests and build the application JAR'
 
