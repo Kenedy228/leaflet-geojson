@@ -1,0 +1,665 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Leaflet GIS — текущий контракт точек и расчёта",
+    "version": "0.0.1-SNAPSHOT",
+    "description": "Фиксирует маршруты, затронутые #8, и источник session/CSRF. Полный контракт слоёв и архитектура расширяются в #19. Существующие пути и totalDistance сохранены для совместимости v1. JSON строгий: без coercion строк/чисел, неизвестных/повторных полей и trailing tokens. Ограничения Jackson: depth16, string4096, number64, document4194304 входных единиц. Ошибки всегда code/message; неизвестные unsafe маршруты могут быть отклонены Security403 до MVC405."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Same-origin локальное приложение"
+    }
+  ],
+  "paths": {
+    "/api/v1/osm/points": {
+      "get": {
+        "summary": "Публичное чтение импортированных и пользовательских точек",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Общие точки",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Point"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/osm/points/add": {
+      "post": {
+        "summary": "Атомарно создать пакет общих пользовательских точек",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "description": "Нужны EDITING_ENABLED=true и роль EDITOR. Все записи валидируются до SQL. Отказ любой вставки откатывает пакет. Идемпотентности нет; потеря ответа не доказывает отсутствие записи.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 1000,
+                "items": {
+                  "$ref": "#/components/schemas/NewPoint"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Полные созданные объекты в порядке запроса, уникальные UUID от БД",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedPoints"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/osm/points/{id}": {
+      "delete": {
+        "summary": "Удалить пользовательскую точку",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Полный user:<uuid>. UUID должен иметь канонические группы 8-4-4-4-12; регистр hex допускается. osm:* всегда readonly."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Удалена ровно одна точка, без тела ответа"
+          },
+          "400": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/osm/distances": {
+      "post": {
+        "summary": "Геодезические расстояния между последовательными парами точек",
+        "security": [],
+        "description": "Публичный SELECT-only расчёт. Единственный POST, исключённый из CSRF. WGS84 geography, метры, сумма сегментов; повторяющиеся координаты могут давать 0. Не автомобильный маршрут.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DistanceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Сегменты и сумма в метрах",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistanceResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/session": {
+      "get": {
+        "summary": "Текущее состояние прав и свежий сессионный CSRF",
+        "security": [],
+        "description": "Cache-Control: no-store. Получать после login/logout; старый CSRF после входа не действует. Пароль и session cookie в тело не включаются.",
+        "responses": {
+          "200": {
+            "description": "Текущая сессия",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "editing_enabled",
+                    "can_edit",
+                    "csrf_header",
+                    "csrf_token"
+                  ],
+                  "properties": {
+                    "editing_enabled": {
+                      "type": "boolean"
+                    },
+                    "can_edit": {
+                      "type": "boolean"
+                    },
+                    "csrf_header": {
+                      "type": "string",
+                      "const": "X-CSRF-TOKEN"
+                    },
+                    "csrf_token": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "JSESSIONID",
+        "description": "HttpOnly/SameSite=Lax; вход через серверную форму /login, без Basic auth."
+      },
+      "csrfToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-TOKEN",
+        "description": "Свежий токен из /api/v1/session; cross-origin credentials не поддерживаются."
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "invalid_request",
+              "invalid_point_batch",
+              "invalid_distance_request",
+              "invalid_point_id",
+              "read_only_point",
+              "point_not_found",
+              "authentication_required",
+              "forbidden",
+              "invalid_csrf",
+              "not_found",
+              "method_not_allowed",
+              "not_acceptable",
+              "payload_too_large",
+              "unsupported_media_type",
+              "internal_error",
+              "service_unavailable"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "example": {
+          "code": "invalid_distance_request",
+          "message": "Требуется 2–1000 пар [lng,lat]."
+        }
+      },
+      "NewPoint": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "lat",
+          "lng"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "1–255 Unicode code points, не только пробелы (String.isBlank); без NUL и непарных суррогатов.",
+            "pattern": "^[^\\u0000]*$"
+          },
+          "lat": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90,
+            "description": "WGS84; пользовательская геометрия хранится в EPSG:4326."
+          },
+          "lng": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          }
+        }
+      },
+      "Point": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source",
+          "osm_id",
+          "name",
+          "geojson"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Непрозрачный строковый ID osm:<bigint> или user:<uuid>; не JavaScript Number."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "osm",
+              "user"
+            ]
+          },
+          "osm_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "geojson": {
+            "type": "string",
+            "description": "Существующий v1 формат: JSON-строка GeoJSON Point, координаты [lng,lat]."
+          }
+        }
+      },
+      "CoordinatePair": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "prefixItems": [
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90,
+            "description": "WGS84; пользовательская геометрия хранится в EPSG:4326."
+          }
+        ],
+        "items": false
+      },
+      "CreatedPoints": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "inserted",
+          "points"
+        ],
+        "properties": {
+          "inserted": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "points": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            }
+          }
+        }
+      },
+      "DistanceRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "points"
+        ],
+        "properties": {
+          "points": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/CoordinatePair"
+            }
+          }
+        }
+      },
+      "DistanceResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "lines",
+          "totalDistance"
+        ],
+        "properties": {
+          "lines": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 999,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "to",
+                "distance"
+              ],
+              "properties": {
+                "from": {
+                  "$ref": "#/components/schemas/CoordinatePair"
+                },
+                "to": {
+                  "$ref": "#/components/schemas/CoordinatePair"
+                },
+                "distance": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "totalDistance": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Legacy v1 camelCase, сохранён для совместимости."
+          }
+        }
+      }
+    }
+  }
+}

@@ -4,8 +4,8 @@ const pointsMarkers = L.layerGroup().addTo(map);
 pointsControl.addEventListener("click", () => {
   if (pointsControl.classList.contains("hidden")) {
     fetch(serverURL + "/points")
-      .then((res) => {
-        if (!res.ok) throw new Error("Не удалось загрузить точки");
+      .then(async (res) => {
+        if (!res.ok) throw new Error(await apiErrorMessage(res, "Не удалось загрузить точки"));
         return res.json();
       })
       .then((data) => {

@@ -16,6 +16,7 @@ function app(responses) {
     },
     fetch: async (url, options) => { calls.push({url, options}); return responses.shift(); },
   });
+  vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../api-errors.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../session.js'), 'utf8'), context);
   return {context, calls, nodes};
 }

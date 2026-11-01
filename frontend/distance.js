@@ -80,7 +80,10 @@ calculateDistanceControl.addEventListener("click", (e) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ points: coords }),
   })
-    .then((res) => res.json())
+    .then(async (res) => {
+      if (!res.ok) throw new Error(await apiErrorMessage(res, "Не удалось рассчитать расстояние"));
+      return res.json();
+    })
     .then((data) => {
       distanceLayerGroup.clearLayers();
 
@@ -97,5 +100,6 @@ calculateDistanceControl.addEventListener("click", (e) => {
         line.bindPopup(popup);
         distanceLayerGroup.addLayer(line);
       });
-    });
+    })
+    .catch((error) => alert(error.message || "Не удалось рассчитать расстояние"));
 });

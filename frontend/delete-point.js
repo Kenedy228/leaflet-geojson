@@ -11,7 +11,7 @@ deletePointControl.addEventListener("click", async () => {
     const response = await pointWrite(`/points/${encodeURIComponent(id)}`, {
       method: "DELETE",
     });
-    if (!response.ok) throw new Error("Не удалось удалить точку");
+    if (!response.ok) throw new Error(await apiErrorMessage(response, "Не удалось удалить точку"));
     pointsMarkers.getLayers().forEach((layer) => {
       if (layer.pointId === id) pointsMarkers.removeLayer(layer);
     });

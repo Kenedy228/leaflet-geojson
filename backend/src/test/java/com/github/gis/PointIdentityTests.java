@@ -172,6 +172,9 @@ class PointIdentityTests {
             var response = client.postForEntity(API + "/add", List.of(
                     input(prefix + "-rollback"), input(rejected)), JsonNode.class);
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertThat(response.getBody().size()).isEqualTo(2);
+            assertThat(response.getBody().path("code").asText()).isEqualTo("internal_error");
+            assertThat(response.getBody().toString()).doesNotContain("reject_test_point", "org.postgresql", "jdbc:");
             assertThat(count("app.user_points", prefix + "-%")).isZero();
         } finally {
             jdbc.execute("ALTER TABLE app.user_points DROP CONSTRAINT reject_test_point");

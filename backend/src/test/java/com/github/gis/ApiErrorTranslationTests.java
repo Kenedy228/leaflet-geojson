@@ -1,0 +1,46 @@
+package com.github.gis;
+
+import com.github.gis.controllers.OSMController;
+import com.github.gis.points.PointService;
+import com.github.gis.security.EditingAccess;
+import com.github.gis.security.SecurityConfiguration;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.containsString;
+
+@WebMvcTest(controllers = OSMController.class)
+@Import({SecurityConfiguration.class, EditingAccess.class})
+class ApiErrorTranslationTests {
+    @Autowired MockMvc mvc;
+    // These exercise error translation; real SQL rollback is covered in PointIdentityTests.
+    @MockitoBean PointService points;
+    @MockitoBean JdbcTemplate jdbc;
+
+    @Test
+    void unavailableDatabaseHasSafe503WithoutConnectionDetails() throws Exception {
+        when(points.list()).thenThrow(new DataAccessResourceFailureException("jdbc:private-test-secret"));
+        mvc.perform(get("/api/v1/osm/points")).andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("service_unavailable"))
+                .andExpect(jsonPath("$.message").isString())
+                .andExpect(content().string(not(containsString("private-test-secret"))));
+    }
+
+    @Test
+    void unexpectedExceptionHasSafe500WithoutInternalMessage() throws Exception {
+        when(points.list()).thenThrow(new IllegalStateException("stack/private-test-secret"));
+        mvc.perform(get("/api/v1/osm/points")).andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("internal_error"))
+                .andExpect(content().string(not(containsString("private-test-secret"))));
+    }
+}
