@@ -2,7 +2,15 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { randomUUID } = require("node:crypto");
 const { chromium } = require("playwright");
-const { baseURL, editor } = require("./support.cjs");
+const {
+  baseURL,
+  editor,
+  points,
+  activate,
+  until,
+  assertEventually,
+  drafts,
+} = require("./support.cjs");
 let browser;
 test.before(async () => {
   browser = await chromium.launch({ headless: true });
@@ -72,23 +80,25 @@ test("distance and layer failures display API messages and can be retried", asyn
       json: { code: "internal_error", message: "Дороги временно недоступны" },
     }),
   );
-  const roadNotice = page.waitForEvent("dialog");
   await page.locator(".roads-control").check();
-  assert.equal((await roadNotice).message(), "Дороги временно недоступны");
+  await assertEventually(async () =>
+    assert.match(
+      await page.locator('.layer-status[data-layer="roads"]').textContent(),
+      /Дороги временно недоступны/,
+    ),
+  );
   await page.unroute("**/api/v1/osm/roads");
-  await page.locator(".roads-control").uncheck();
-  await page.locator(".roads-control").check();
-  await page.waitForFunction(() => roadsMarkers.getLayers().length === 2);
-  await page.locator(".points-control").check();
-  await page.waitForFunction(() => pointsMarkers.getLayers().length >= 3);
-  await page.locator(".points-distance > input").check();
-  await page.evaluate(() => {
-    for (const group of pointsMarkers
-      .getLayers()
-      .filter((g) => g.pointId.startsWith("osm:"))
-      .slice(0, 2))
-      group.getLayers()[0].fire("click");
-  });
+  await page
+    .getByRole("button", { name: "Повторить загрузку: Дороги" })
+    .click();
+  await until(
+    () => page.locator('[data-layer="roads"].leaflet-interactive').count(),
+    2,
+  );
+  await points(page);
+  await page.locator(".points-distance-control").check();
+  for (let i = 0; i < 2; i++)
+    await activate(page.locator('[data-point-id^="osm:"]').nth(i));
   await page.route("**/api/v1/osm/distances", (route) =>
     route.fulfill({
       status: 400,
@@ -98,20 +108,24 @@ test("distance and layer failures display API messages and can be retried", asyn
       },
     }),
   );
-  const distanceNotice = page.waitForEvent("dialog");
   await page.locator(".points-distance-calculate-control").click();
-  assert.equal(
-    (await distanceNotice).message(),
-    "Проверьте координаты выбранных точек",
+  await assertEventually(async () =>
+    assert.match(
+      await page.locator(".distance-error").textContent(),
+      /Проверьте координаты выбранных точек/,
+    ),
   );
-  assert.equal(await page.evaluate(() => selectedMarkers.length), 2);
+  assert.equal(
+    await page.locator(".points-distance-selected-list li").count(),
+    2,
+  );
   await page.unroute("**/api/v1/osm/distances");
   const calculated = page.waitForResponse(
     (r) => r.url().endsWith("/distances") && r.status() === 200,
   );
   await page.locator(".points-distance-calculate-control").click();
   await calculated;
-  await page.waitForFunction(() => distanceLayerGroup.getLayers().length === 1);
+  await until(() => page.locator("[data-distance-line]").count(), 1);
   assert.deepEqual(scriptErrors, []);
 });
 
@@ -127,20 +141,8 @@ test("deleting a point removed by another client reports actual404", async (t) =
   });
   assert.equal(added.status(), 201);
   const id = (await added.json()).points[0].id;
-  await page.locator(".points-control").check();
-  await page.waitForFunction(
-    (id) => pointsMarkers.getLayers().some((g) => g.pointId === id),
-    id,
-  );
-  await page.evaluate(
-    (id) =>
-      pointsMarkers
-        .getLayers()
-        .find((g) => g.pointId === id)
-        .getLayers()[0]
-        .fire("click"),
-    id,
-  );
+  await points(page);
+  await activate(page.locator(`[data-point-id="${id}"]`));
   assert.equal(
     (
       await context.request.delete(baseURL + "/api/v1/osm/points/" + id, {
@@ -149,13 +151,43 @@ test("deleting a point removed by another client reports actual404", async (t) =
     ).status(),
     204,
   );
-  const notice = page.waitForEvent("dialog");
   const response = page.waitForResponse(
     (r) => r.request().method() === "DELETE" && r.status() === 404,
   );
   await page.locator(".delete-points-control").click();
   assert.equal((await response).status(), 404);
-  assert.match((await notice).message(), /не найдена/);
-  await page.waitForFunction(() => !pendingPointWrites.delete);
-  assert.equal(await page.locator(".delete-points-control").isEnabled(), true);
+  await assertEventually(async () =>
+    assert.match(
+      await page.locator(".delete-status").textContent(),
+      /не найдена/,
+    ),
+  );
+  assert.equal(await page.locator(".delete-points-control").isEnabled(), false);
+});
+
+test("logout preserves drafts and forbids a later write with the expired session", async (t) => {
+  const { context, page } = await editor(browser, t);
+  await drafts(page, ["Черновик после выхода"]);
+  const token = await (
+    await context.request.get(baseURL + "/api/v1/session")
+  ).json();
+  await page.locator(".access-logout").click();
+  await page.locator(".access-login").waitFor();
+  assert.equal(
+    await page.locator(".change-add-point-name input").inputValue(),
+    "Черновик после выхода",
+  );
+  assert.equal(await page.locator(".add-point-save").isDisabled(), true);
+  const denied = await context.request.post(
+    baseURL + "/api/v1/osm/points/add",
+    {
+      headers: { [token.csrf_header]: token.csrf_token },
+      data: [{ name: "Forbidden", lat: 52.34, lng: 35.35 }],
+    },
+  );
+  assert.ok([401, 403].includes(denied.status()));
+  assert.deepEqual(Object.keys(await denied.json()).sort(), [
+    "code",
+    "message",
+  ]);
 });

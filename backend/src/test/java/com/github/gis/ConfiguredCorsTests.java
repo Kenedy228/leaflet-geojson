@@ -83,7 +83,7 @@ class ConfiguredCorsTests {
 
   @Test
   void doesNotGrantCrossOriginAccessToStaticFiles() throws Exception {
-    mvc.perform(get("/constraints.js").header("Origin", "http://localhost:5173"))
+    mvc.perform(get("/").header("Origin", "http://localhost:5173"))
         .andExpect(status().isOk())
         .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
   }

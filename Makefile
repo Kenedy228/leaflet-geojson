@@ -4,24 +4,25 @@
 MAVEN_ARGS ?=
 export MAVEN_ARGS BACKUP_FILE CONFIRM_RESTORE
 
-.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra install-browser test-browser test verify lint format-check format ci
+.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra install-browser test-browser test verify lint format-check format ci dev-frontend
 
 help:
 	@printf '%s\n' \
 	  'make init-env  Create private .env without replacing an existing file' \
 	  'make init-editor  Enable local editor with private generated credentials' \
 	  'make dev     Start local PostGIS and frontend/API with demo data' \
+	  'make dev-frontend  Run Vite HMR and API proxy for frontend development' \
 	  'make run     Start frontend/API using .env (without demo seeding)' \
 	  'make db-up / db-down  Start / stop local PostGIS, preserving its volume' \
 	  'make db-seed / db-reset-demo  Restore only the licensed demo reference rows' \
 	  'make db-backup  Save local DB to a private backups/*.dump file' \
 	  'make db-restore BACKUP_FILE=... CONFIRM_RESTORE=YES  Restore a trusted backup' \
-	  'make check   Check frontend JavaScript syntax and Git whitespace' \
+	  'make check   Check Svelte/TypeScript, Python syntax and Git whitespace' \
 	  'make lint / format-check  Check frontend lint and frontend/Java formatting' \
 	  'make format  Apply frontend and Java formatting' \
 	  'make ci      Run all mandatory checks including Chromium' \
 	  'make build   Build the application JAR without running tests' \
-	  'make test-frontend  Run frontend point identity regression tests' \
+	  'make test-frontend  Run frontend Vitest regressions' \
 	  'make install-browser  Install pinned browser test dependencies and Chromium' \
 	  'make test-browser  Run popup and batch-save regressions on disposable PostGIS and app' \
 	  'make test    Run tests using a disposable, isolated PostGIS' \
@@ -58,7 +59,7 @@ db-restore:
 	python3 infra/manage.py restore
 
 check:
-	@set -eu; for file in frontend/*.js; do node --check "$$file"; done
+	npm --prefix frontend run check
 	python3 -m py_compile infra/manage.py infra/browser_test.py
 	git diff --check
 
@@ -66,7 +67,7 @@ build:
 	cd backend && ./mvnw $(MAVEN_ARGS) -DskipTests package
 
 test-frontend:
-	node --test frontend/tests/*.test.cjs
+	npm --prefix frontend test
 
 test-infra:
 	python3 -m unittest discover -s infra/__tests__ -v
@@ -100,3 +101,6 @@ ci:
 	$(MAKE) lint format-check
 	$(MAKE) verify
 	$(MAKE) test-browser
+
+dev-frontend:
+	npm --prefix frontend run dev
