@@ -9,6 +9,7 @@ const {
   save,
   points,
   activate,
+  settlePopups,
   until,
 } = require("./support.cjs");
 
@@ -76,6 +77,7 @@ test("full point lifecycle keeps names literal through save, reload, distance an
       await page.locator(".leaflet-popup-content").last().textContent()
     ).includes(distance.lines[0].distance.toFixed(2)),
   );
+  await settlePopups(page);
   const axe = await new AxeBuilder({ page })
     .include(".leaflet-popup")
     .analyze();

@@ -9,6 +9,7 @@ const {
   drafts,
   points,
   activate,
+  settlePopups,
   gate,
 } = require("./support.cjs");
 let browser;
@@ -279,6 +280,7 @@ test("375px viewport keeps map and attribution visible, supports keyboard contro
     ),
     true,
   );
+  await settlePopups(page);
   const result = await new AxeBuilder({ page }).analyze();
   assert.deepEqual(
     result.violations.map((v) => ({
