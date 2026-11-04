@@ -114,8 +114,9 @@ CORS управляет браузерным доступом к ответам 
 Данные © OpenStreetMap contributors, распространяются на условиях
 [Open Database License 1.0](https://opendatacommons.org/licenses/odbl/1-0/).
 [Источник и атрибуция](https://www.openstreetmap.org/copyright).
-Это лицензия данных, не выбор лицензии программного кода. На карте показана ссылка
-на OpenStreetMap contributors; OSM-тайлы остаются внешним сервисом.
+Код приложения распространяется по [MIT](../LICENSE); OSM-данные сохраняют условия
+ODbL. На карте показана ссылка на OpenStreetMap contributors; OSM-тайлы остаются
+внешним сервисом.
 
 Demo активируется только профилем `demo` либо явной командой:
 
