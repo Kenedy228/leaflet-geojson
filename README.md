@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/Kenedy228/leaflet-geojson/actions/workflows/ci.yml/badge.svg?branch=stage)](https://github.com/Kenedy228/leaflet-geojson/actions/workflows/ci.yml?query=branch%3Astage)
 
+Версия проекта — **1.0.0**.
 Учебное GIS-приложение для курсовой работы 4 курса и GitHub-портфолио.
 Показывает геоданные OpenStreetMap, сохраняет общие пользовательские точки
 и вычисляет геодезические расстояния. Frontend, API и локальная БД запускаются
@@ -176,7 +177,7 @@ make ci
 
 | Команда | Что проверяет или запускает |
 | --- | --- |
-| `make build` | Vite build и JAR: `backend/target/gis-0.0.1-SNAPSHOT.jar` |
+| `make build` | Vite build и JAR: `backend/target/gis.jar` |
 | `make check` | OpenAPI, строгие Svelte/TypeScript, синтаксис Python, Git whitespace |
 | `make lint`, `make format-check` | ESLint, Prettier и Spotless; `make format` применяет формат |
 | `make test-frontend`, `make test-infra` | Vitest и CLI unit-тесты, без Docker |

@@ -100,7 +100,7 @@ frontend и `/api/v1/osm` с одного адреса; обычный стат�
 `.env` читает `infra/manage.py` как данные, не shell-код; окружение имеет приоритет.
 Не предлагай `. ./.env`. `make dev` всегда использует Compose, внешний `DB_URL`
 поддерживает только `make run`. Backend при прямом запуске JAR требует экспортированных
-`DB_*`; JVM сама `.env` не загружает. Путь JAR — `backend/target/gis-0.0.1-SNAPSHOT.jar`.
+`DB_*`; JVM сама `.env` не загружает. Путь JAR — `backend/target/gis.jar`.
 
 Тесты по умолчанию получают уникальный Compose project, tmpfs и случайный порт,
 не dev-volume. `TEST_DB_URL` — явное переключение на отдельную внешнюю тестовую БД.

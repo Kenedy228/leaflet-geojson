@@ -33,7 +33,7 @@ def main() -> None:
         with tempfile.TemporaryDirectory(prefix="leaflet-browser-") as directory:
             log = Path(directory) / "application.log"
             with log.open("w") as output:
-                process = subprocess.Popen([java, "-jar", str(manage.ROOT / "backend/target/gis-0.0.1-SNAPSHOT.jar"),
+                process = subprocess.Popen([java, "-jar", str(manage.ROOT / "backend/target/gis.jar"),
                                             "--server.port=0", "--server.address=127.0.0.1"],
                                            cwd=manage.ROOT, env=env, stdout=output, stderr=subprocess.STDOUT)
                 base = wait_application(process, log)

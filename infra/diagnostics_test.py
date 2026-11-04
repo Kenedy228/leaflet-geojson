@@ -42,7 +42,7 @@ def request(base: str, path: str, *, method="GET", data=None, headers=None, open
 def application(env: dict[str, str], log: Path):
     java = str(Path(env["JAVA_HOME"]) / "bin/java") if env.get("JAVA_HOME") else "java"
     with log.open("w", encoding="utf-8") as output:
-        process = subprocess.Popen([java, "-jar", str(manage.ROOT / "backend/target/gis-0.0.1-SNAPSHOT.jar"),
+        process = subprocess.Popen([java, "-jar", str(manage.ROOT / "backend/target/gis.jar"),
                                     "--server.port=0", "--server.address=127.0.0.1"],
                                    cwd=manage.ROOT, env=env, stdout=output, stderr=subprocess.STDOUT)
         try:
