@@ -16,7 +16,7 @@ npm --prefix frontend ci --ignore-scripts
 make dev-frontend
 ```
 
-Открой http://127.0.0.1:5173. Vite проксирует `/api`, `/login`, `/logout` на
+Открой http://127.0.0.1:5173. Vite обслуживает GET `/login` из `login.html` с HMR; POST `/login`, `/api` и `/logout` проксируются на
 http://127.0.0.1:8080, сохраняя browser origin и session cookie. Если backend
 использует другой порт, задай `API_PROXY_TARGET` только процессу dev-сервера:
 

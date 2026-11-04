@@ -1,0 +1,169 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #f3f5f3;
+  color: #19312d;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  border: 1px solid #b7c9c2;
+  border-radius: 7px;
+  background: #fff;
+  color: #193e34;
+  padding: 8px 12px;
+  cursor: pointer;
+  min-height: 40px;
+  max-width: 100%;
+  white-space: normal;
+}
+button:hover:not(:disabled) {
+  background: #e8f2eb;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+a {
+  color: #176447;
+}
+:focus-visible {
+  outline: 3px solid #ca8f29;
+  outline-offset: 3px;
+}
+h2 {
+  font-size: 15px;
+  margin: 0 0 13px;
+  font-weight: 700;
+}
+p {
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+small {
+  font-size: 11px;
+  color: #536d64;
+}
+input[type="checkbox"] {
+  accent-color: #277957;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  margin: 3px 0;
+}
+input[type="text"],
+input[type="number"],
+input[type="password"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 5px 0;
+  border: 1px solid #aebfb6;
+  padding: 9px;
+  border-radius: 6px;
+  color: #19312d;
+  background: white;
+}
+.layer-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 13px 0;
+  cursor: pointer;
+}
+.layer-toggle small {
+  display: block;
+  margin-top: 2px;
+}
+.hint {
+  font-size: 12px;
+  color: #526c63;
+}
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.primary {
+  background: #216b4e;
+  color: white;
+  border-color: #216b4e;
+  margin-top: 10px;
+  width: 100%;
+}
+.danger {
+  color: #9d302e;
+}
+[role="alert"] {
+  color: #a32929;
+}
+[role="status"] {
+  font-size: 12px;
+}
+.coordinate-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.coordinate-form button {
+  grid-column: 1/-1;
+}
+.change-add-point-name {
+  padding: 12px 0;
+  border-top: 1px dashed #c9d5ce;
+}
+.change-add-point-name small {
+  display: block;
+  margin-bottom: 7px;
+}
+.points-distance-selected-list {
+  padding-left: 23px;
+  overflow-wrap: anywhere;
+}
+
+.app-header {
+  height: 94px;
+  padding: 18px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid #d6e0d9;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.brand-mark {
+  background: #236a4e;
+  color: white;
+  font-size: 30px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+}
+.brand h1 {
+  font-size: 24px;
+  letter-spacing: -1px;
+  margin: 0;
+}
+.brand p {
+  font-size: 11px;
+  color: #63766d;
+  margin: 0;
+}
+.project-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: #667a6f;
+}

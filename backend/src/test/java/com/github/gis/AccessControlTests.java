@@ -147,7 +147,10 @@ class AccessControlTests {
     String oldSession = cookies.getCookieStore().getCookies().getFirst().getValue();
     var loginPage = client.getForEntity("/login", String.class);
     assertThat(loginPage.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(loginPage.getBody()).contains("name=\"username\"", "name=\"password\"");
+    assertThat(loginPage.getBody())
+        .contains("name=\"username\"", "name=\"password\"", "Вход редактора", "Геоатлас")
+        .doesNotContain("cdn.jsdelivr.net");
+    assertThat(loginPage.getHeaders().getCacheControl()).contains("no-store");
     var form = new LinkedMultiValueMap<String, String>();
     form.add("username", "editor");
     form.add("password", EditorHttpClient.PASSWORD);
