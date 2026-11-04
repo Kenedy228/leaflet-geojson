@@ -154,6 +154,13 @@ def main() -> None:
         init_editor(ROOT)
         return
     env = load_env(ROOT)
+    if command == "benchmark":
+        if env.get("TEST_DB_URL"):
+            raise ValueError("Spatial benchmark requires an owned temporary DB; unset TEST_DB_URL")
+        env["SPATIAL_BENCHMARK_ISOLATED"] = "1"
+        env["MAVEN_ARGS"] = env.get("MAVEN_ARGS", "") + " -Dtest=SpatialQueryBenchmark"
+        test_backend(env, "test")
+        return
     if command in ("test", "verify"):
         test_backend(env, command)
         return

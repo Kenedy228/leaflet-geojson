@@ -2,6 +2,8 @@ package com.github.gis.points;
 
 import com.github.gis.api.ApiException;
 import com.github.gis.geo.Coordinates;
+import com.github.gis.geo.SpatialQuery;
+import com.github.gis.geo.SpatialService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -23,25 +25,15 @@ public class PointService {
               row.getString("geojson"));
 
   private final JdbcTemplate jdbc;
+  private final SpatialService spatial;
 
-  public PointService(JdbcTemplate jdbc) {
+  public PointService(JdbcTemplate jdbc, SpatialService spatial) {
     this.jdbc = jdbc;
+    this.spatial = spatial;
   }
 
   public List<Point> list() {
-    return jdbc.query(
-        """
-                SELECT 'osm:' || osm_id::text AS id, 'osm' AS source,
-                       osm_id::text AS osm_id, name,
-                       ST_AsGeoJSON(ST_Transform(way, 4326)) AS geojson
-                FROM public.planet_osm_point WHERE name IS NOT NULL
-                UNION ALL
-                SELECT 'user:' || id::text, 'user', NULL::text, name,
-                       ST_AsGeoJSON(geom)
-                FROM app.user_points
-                ORDER BY id
-                """,
-        POINT);
+    return spatial.points(SpatialQuery.world());
   }
 
   @Transactional

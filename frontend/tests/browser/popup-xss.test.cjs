@@ -4,6 +4,7 @@ const { chromium } = require("playwright");
 const AxeBuilder = require("@axe-core/playwright").default;
 const {
   editor,
+  layerURL,
   baseURL,
   drafts,
   save,
@@ -114,7 +115,7 @@ test("full point lifecycle keeps names literal through save, reload, distance an
 for (const layer of ["roads", "polygons"]) {
   test(`${layer} imported names and empty-name fallback are literal in real Leaflet popups`, async (t) => {
     const { page } = await editor(browser, t);
-    await page.route(`**/api/v1/osm/${layer}`, async (route) => {
+    await page.route(layerURL(layer), async (route) => {
       const response = await route.fetch();
       const data = await response.json();
       assert.ok(data.length >= 2);

@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.github.gis.controllers.OSMController;
+import com.github.gis.geo.SpatialService;
 import com.github.gis.points.PointService;
 import com.github.gis.security.EditingAccess;
 import com.github.gis.security.SecurityConfiguration;
@@ -11,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -21,7 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import({SecurityConfiguration.class, EditingAccess.class})
 class ConfiguredCorsTests {
   @Autowired MockMvc mvc;
-  @MockitoBean JdbcTemplate jdbc;
+  @MockitoBean SpatialService spatial;
   @MockitoBean PointService points;
 
   @Test

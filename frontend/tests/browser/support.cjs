@@ -11,6 +11,16 @@ if (
   );
 }
 
+const layerURLs = Object.fromEntries(
+  ["points", "roads", "polygons"].map((layer) => [
+    layer,
+    new RegExp(`/api/v1/osm/${layer}(?:\\?.*)?$`),
+  ]),
+);
+function layerURL(layer) {
+  return layerURLs[layer];
+}
+
 async function until(read, expected, message = "UI did not settle") {
   await assertEventually(
     async () => assert.deepEqual(await read(), expected),
@@ -131,6 +141,7 @@ function gate() {
 }
 module.exports = {
   baseURL,
+  layerURL,
   editor,
   until,
   assertEventually,

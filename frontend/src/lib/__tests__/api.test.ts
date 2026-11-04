@@ -12,6 +12,20 @@ afterEach(() => {
   vi.useRealTimers();
 });
 describe("API transport and acknowledgement", () => {
+  it("encodes WGS84 bbox order and zoom for viewport requests", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response("[]"));
+    vi.stubGlobal("fetch", fetcher);
+    await new Api().layer("roads", undefined, {
+      bbox: [170, -20, -170, 30],
+      zoom: 6,
+    });
+    const url = new URL(
+      fetcher.mock.calls[0]?.[0] as string,
+      "http://localhost",
+    );
+    expect(url.searchParams.get("bbox")).toBe("170,-20,-170,30");
+    expect(url.searchParams.get("zoom")).toBe("6");
+  });
   it("accepts successful logout redirect HTML without decoding JSON", async () => {
     vi.stubGlobal(
       "fetch",

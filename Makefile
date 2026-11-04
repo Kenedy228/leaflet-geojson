@@ -4,7 +4,7 @@
 MAVEN_ARGS ?=
 export MAVEN_ARGS BACKUP_FILE CONFIRM_RESTORE
 
-.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra install-browser test-browser test verify lint format-check format ci dev-frontend
+.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra install-browser test-browser test verify lint format-check format ci dev-frontend benchmark-spatial
 
 help:
 	@printf '%s\n' \
@@ -21,6 +21,7 @@ help:
 	  'make lint / format-check  Check frontend lint and frontend/Java formatting' \
 	  'make format  Apply frontend and Java formatting' \
 	  'make ci      Run all mandatory checks including Chromium' \
+	  'make benchmark-spatial  Measure production SQL/HTTP on an owned PostGIS fixture' \
 	  'make build   Build the application JAR without running tests' \
 	  'make test-frontend  Run frontend Vitest regressions' \
 	  'make install-browser  Install pinned browser test dependencies and Chromium' \
@@ -104,3 +105,6 @@ ci:
 
 dev-frontend:
 	npm --prefix frontend run dev
+
+benchmark-spatial:
+	python3 infra/manage.py benchmark
