@@ -36,6 +36,7 @@ export class AppModel {
   access = $state<Session>(readonly());
   accessError = $state("");
   accessPending = $state(false);
+  logoutFailed = $state(false);
   drafts = $state<Draft[]>([]);
   addMode = $state(false);
   distanceMode = $state(false);
@@ -65,7 +66,44 @@ export class AppModel {
   private distanceRequest: AbortController | undefined;
   private distanceVersion = 0;
   private sessionVersion = 0;
+  private editorVersion = 0;
+  private checkingSession = false;
   constructor(private api = new Api()) {}
+  get canEdit() {
+    return this.access.can_edit && !this.accessPending && !this.logoutFailed;
+  }
+  private clearEditorState() {
+    this.editorVersion++;
+    this.addMode = false;
+    this.drafts = [];
+    this.deleteTarget = null;
+    this.saveStatus = "";
+    this.deleteStatus = "";
+    this.savePending = false;
+    this.deletePending = false;
+    this.savingIds = [];
+  }
+  private reconcilePoints() {
+    if (this.alive && this.layers.points.visible)
+      void this.toggleLayer("points", true);
+  }
+  async recheckSession() {
+    if (
+      !this.alive ||
+      this.accessPending ||
+      this.logoutFailed ||
+      this.checkingSession
+    )
+      return;
+    this.checkingSession = true;
+    try {
+      await this.refreshSession();
+    } catch {
+      // refreshSession owns the fail-closed state and public error message.
+    } finally {
+      this.checkingSession = false;
+    }
+  }
   get points() {
     if (!this.layers.points.visible) return [];
     const items: Record<string, GeoItem> = Object.fromEntries(
@@ -97,15 +135,21 @@ export class AppModel {
       if (!this.alive || version !== this.sessionVersion)
         throw new Error("Состояние сеанса изменилось. Повторите действие.");
       if (this.alive) {
-        this.access = access;
-        this.accessError = "";
-        if (!access.can_edit) this.addMode = false;
+        this.access =
+          this.accessPending || this.logoutFailed
+            ? { ...access, can_edit: false }
+            : access;
+        if (!this.logoutFailed) this.accessError = "";
+        if (!access.can_edit) this.clearEditorState();
       }
       return access;
     } catch (error) {
       if (this.alive && version === this.sessionVersion) {
         this.access = readonly();
+        // An unavailable check does not prove that the editor session ended.
+        // Hide its tools/markers, but retain unsaved work until access is known.
         this.addMode = false;
+        this.deleteTarget = null;
         this.accessError = message(error);
       }
       throw error;
@@ -195,7 +239,7 @@ export class AppModel {
     }
   }
   setAddMode(value: boolean) {
-    this.addMode = value && this.access.can_edit;
+    this.addMode = value && this.canEdit;
     this.deleteTarget = null;
     if (this.addMode) this.setDistanceMode(false);
   }
@@ -208,7 +252,7 @@ export class AppModel {
     this.clearDistance();
   }
   addDraft(lat: number, lng: number) {
-    if (!this.addMode || !this.access.can_edit) return;
+    if (!this.addMode || !this.canEdit) return;
     try {
       coordinate([lng, lat]);
     } catch {
@@ -223,12 +267,12 @@ export class AppModel {
     });
   }
   renameDraft(id: string, name: string) {
-    if (this.savingIds.includes(id)) return;
+    if (!this.canEdit || this.savingIds.includes(id)) return;
     const draft = this.drafts.find((d) => d.id === id);
     if (draft) draft.name = name;
   }
   dropDraft(id: string) {
-    if (!this.savingIds.includes(id))
+    if (this.canEdit && !this.savingIds.includes(id))
       this.drafts = this.drafts.filter((d) => d.id !== id);
   }
   clearDistance() {
@@ -242,7 +286,8 @@ export class AppModel {
   clickPoint(point: GeoItem) {
     if (this.addMode) return;
     if (!this.distanceMode) {
-      this.deleteTarget = point.source === "user" ? point : null;
+      this.deleteTarget =
+        this.canEdit && point.source === "user" ? point : null;
       return;
     }
     this.distanceRequest?.abort();
@@ -291,29 +336,41 @@ export class AppModel {
     if (
       this.savePending ||
       this.accessPending ||
-      !this.access.can_edit ||
+      !this.canEdit ||
       !this.drafts.length
     )
       return;
+    const version = this.editorVersion;
+    let sent = false;
     const snapshot = this.drafts.map((d) => ({ ...d }));
+    const sentIds = snapshot.map((d) => d.id);
     this.savePending = true;
-    this.savingIds = snapshot.map((d) => d.id);
+    this.savingIds = sentIds;
     this.saveStatus = "Сохранение точек…";
     try {
       const access = await this.refreshSession();
-      if (!access.can_edit || !this.access.can_edit || this.accessPending)
+      if (version !== this.editorVersion || !access.can_edit || !this.canEdit)
         throw new Error("Редактирование недоступно. Войдите как редактор.");
+      sent = true;
       const saved = await this.api.save(
         snapshot,
         access,
         this.lifecycle.signal,
       );
       if (!this.alive) return;
+      if (version !== this.editorVersion) {
+        this.reconcilePoints();
+        return;
+      }
       this.confirmed = [...this.confirmed, ...saved];
-      this.drafts = this.drafts.filter((d) => !this.savingIds.includes(d.id));
+      this.drafts = this.drafts.filter((d) => !sentIds.includes(d.id));
       this.saveStatus = `Сохранено точек: ${saved.length}.`;
     } catch (error) {
       if (this.alive) {
+        if (version !== this.editorVersion) {
+          if (sent) this.reconcilePoints();
+          return;
+        }
         this.saveStatus = `${message(error)} Черновики сохранены; проверьте точки перед повторной отправкой.`;
         // Logout owns the session generation until its preflight and POST finish.
         if (!this.accessPending) {
@@ -325,7 +382,7 @@ export class AppModel {
         }
       }
     } finally {
-      if (this.alive) {
+      if (this.alive && version === this.editorVersion) {
         this.savePending = false;
         this.savingIds = [];
       }
@@ -334,26 +391,37 @@ export class AppModel {
   async deleteSelected() {
     if (
       !this.deleteTarget ||
-      !this.access.can_edit ||
+      !this.canEdit ||
       this.accessPending ||
       this.deletePending
     )
       return;
+    const version = this.editorVersion;
+    let sent = false;
     const id = this.deleteTarget.id;
     this.deletePending = true;
     this.deleteStatus = "Удаление точки…";
     try {
       const access = await this.refreshSession();
-      if (!access.can_edit || !this.access.can_edit || this.accessPending)
+      if (version !== this.editorVersion || !access.can_edit || !this.canEdit)
         throw new Error("Редактирование недоступно.");
+      sent = true;
       await this.api.remove(id, access, this.lifecycle.signal);
       if (!this.alive) return;
+      if (version !== this.editorVersion) {
+        this.reconcilePoints();
+        return;
+      }
       this.deleted = [...this.deleted, id];
       this.clearDistance();
       if (this.deleteTarget?.id === id) this.deleteTarget = null;
       this.deleteStatus = "Точка удалена.";
     } catch (error) {
       if (this.alive) {
+        if (version !== this.editorVersion) {
+          if (sent) this.reconcilePoints();
+          return;
+        }
         if (error instanceof ApiError && error.status === 404) {
           this.deleted = [...this.deleted, id];
           this.clearDistance();
@@ -370,26 +438,33 @@ export class AppModel {
         }
       }
     } finally {
-      if (this.alive) this.deletePending = false;
+      if (this.alive && version === this.editorVersion)
+        this.deletePending = false;
     }
   }
   async logout() {
     if (this.accessPending) return;
     this.accessPending = true;
+    this.logoutFailed = false;
     this.sessionVersion++;
     this.access = readonly();
-    this.addMode = false;
+    this.accessError = "";
+    this.clearEditorState();
     try {
       const access = await this.refreshSession();
       await this.api.logout(access, this.lifecycle.signal);
       if (this.alive) {
         this.sessionVersion++;
         this.access = readonly();
-        this.addMode = false;
-        await this.refreshSession();
+        const after = await this.refreshSession();
+        if (after.can_edit) throw new Error("Сеанс редактора всё ещё активен.");
       }
     } catch (error) {
-      if (this.alive) this.accessError = message(error);
+      if (this.alive) {
+        this.access = readonly();
+        this.logoutFailed = true;
+        this.accessError = `Не удалось подтвердить выход. ${message(error)} Повторите выход.`;
+      }
     } finally {
       if (this.alive) this.accessPending = false;
     }

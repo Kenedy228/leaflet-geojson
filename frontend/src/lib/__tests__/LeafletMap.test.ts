@@ -176,6 +176,12 @@ describe("Leaflet component lifecycle", () => {
     };
     model.layers.points.visible = true;
     model.layers.points.data = [canonical];
+    model.access = {
+      editing_enabled: true,
+      can_edit: true,
+      csrf_header: "X-CSRF-TOKEN",
+      csrf_token: "token",
+    };
     model.drafts = [{ id: "draft:1", name: "Draft", lng: -179, lat: 0 }];
     model.layers.roads.data = [
       {

@@ -73,7 +73,7 @@ describe("reactive application state", () => {
     expect(m.selected).toEqual([]);
     m.destroy();
   });
-  it("preserves drafts on failure, mode exit and logout", async () => {
+  it("preserves drafts on write failure and mode exit but clears them on logout", async () => {
     const api = new Api();
     vi.spyOn(api, "session").mockResolvedValue(session);
     vi.spyOn(api, "save").mockRejectedValue(new Error("failure"));
@@ -86,8 +86,9 @@ describe("reactive application state", () => {
     m.addDraft(52, 35);
     await m.save();
     m.setAddMode(false);
-    await m.logout();
     expect(m.drafts).toHaveLength(1);
+    await m.logout();
+    expect(m.drafts).toHaveLength(0);
     expect(m.access.can_edit).toBe(false);
     m.destroy();
   });
@@ -195,7 +196,7 @@ describe("authoritative refresh races", () => {
     await pending;
     expect(m.access.can_edit).toBe(false);
     expect(write).not.toHaveBeenCalled();
-    expect(m.drafts).toHaveLength(1);
+    expect(m.drafts).toHaveLength(0);
     m.destroy();
   });
   it("keeps the newest session when two refreshes finish in reverse order", async () => {
@@ -351,4 +352,212 @@ describe("viewport layer loading", () => {
     expect(m.layers.roads.error).toBe("");
     m.destroy();
   });
+});
+
+describe("editor scope transitions", () => {
+  function setup() {
+    const api = new Api();
+    const get = vi.spyOn(api, "session").mockResolvedValue(session);
+    vi.spyOn(api, "logout").mockImplementation(async () => {
+      get.mockResolvedValue({ ...session, can_edit: false });
+    });
+    const layer = vi.spyOn(api, "layer").mockResolvedValue([point]);
+    return { api, get, layer, m: new AppModel(api) };
+  }
+  it("locks immediately during logout and preserves public map and route state", async () => {
+    const { m, get } = setup();
+    await m.refreshSession();
+    await m.toggleLayer("points", true);
+    m.setAddMode(true);
+    m.addDraft(52, 35);
+    m.setDistanceMode(true);
+    m.clickPoint(point);
+    m.distance = { lines: [], totalDistance: 42 };
+    m.deleteTarget = point;
+    m.saveStatus = "old";
+    m.deleteStatus = "old";
+    const preflight = deferred<typeof session>();
+    get.mockReturnValueOnce(preflight.promise);
+    const leaving = m.logout();
+    expect(m.canEdit).toBe(false);
+    expect(m.drafts).toEqual([]);
+    expect(m.deleteTarget).toBeNull();
+    expect(m.saveStatus).toBe("");
+    expect(m.deleteStatus).toBe("");
+    preflight.resolve(session);
+    await leaving;
+    expect(m.canEdit).toBe(false);
+    expect(m.layers.points.visible).toBe(true);
+    expect(m.points).toEqual([point]);
+    expect(m.distance?.totalDistance).toBe(42);
+    expect(m.selected).toEqual([point]);
+    expect(m.distanceMode).toBe(true);
+    m.destroy();
+  });
+  it("clears editor state on external session loss and prevents guest deletion selection", async () => {
+    const { m, get } = setup();
+    await m.refreshSession();
+    m.setAddMode(true);
+    m.addDraft(52, 35);
+    m.setAddMode(false);
+    m.clickPoint(point);
+    get.mockResolvedValue({ ...session, can_edit: false });
+    await m.recheckSession();
+    expect(m.canEdit).toBe(false);
+    expect(m.drafts).toEqual([]);
+    expect(m.deleteTarget).toBeNull();
+    m.clickPoint(point);
+    expect(m.deleteTarget).toBeNull();
+    m.destroy();
+  });
+  it("keeps logout failure locked and allows an explicit retry", async () => {
+    const { m, api } = setup();
+    vi.mocked(api.logout).mockRejectedValueOnce(new Error("offline"));
+    await m.refreshSession();
+    m.setAddMode(true);
+    m.addDraft(52, 35);
+    await m.logout();
+    expect(m.logoutFailed).toBe(true);
+    expect(m.canEdit).toBe(false);
+    expect(m.drafts).toEqual([]);
+    m.setAddMode(true);
+    m.addDraft(52, 35);
+    expect(m.addMode).toBe(false);
+    expect(m.drafts).toEqual([]);
+    await m.recheckSession();
+    expect(m.canEdit).toBe(false);
+    await m.logout();
+    expect(m.logoutFailed).toBe(false);
+    expect(m.canEdit).toBe(false);
+    m.destroy();
+  });
+  it("ignores a sent save completing after logout and reconciles public points", async () => {
+    const { m, api, layer } = setup();
+    const write = deferred<GeoItem[]>();
+    vi.spyOn(api, "save").mockReturnValue(write.promise);
+    await m.refreshSession();
+    await m.toggleLayer("points", true);
+    m.setAddMode(true);
+    m.addDraft(52, 35);
+    const saving = m.save();
+    await vi.waitFor(() => expect(api.save).toHaveBeenCalledTimes(1));
+    await m.logout();
+    write.resolve([point]);
+    await saving;
+    expect(m.saveStatus).toBe("");
+    expect(m.drafts).toEqual([]);
+    expect(m.savingIds).toEqual([]);
+    expect(m.savePending).toBe(false);
+    expect(m.canEdit).toBe(false);
+    await vi.waitFor(() => expect(layer).toHaveBeenCalledTimes(2));
+    expect(m.points).toEqual([point]);
+    m.destroy();
+  });
+  it("does not erase a public route when a sent delete completes after logout", async () => {
+    const { m, api } = setup();
+    const write = deferred<void>();
+    vi.spyOn(api, "remove").mockReturnValue(write.promise);
+    await m.refreshSession();
+    m.clickPoint(point);
+    m.selected = [point];
+    m.distance = { lines: [], totalDistance: 42 };
+    const deleting = m.deleteSelected();
+    await vi.waitFor(() => expect(api.remove).toHaveBeenCalledTimes(1));
+    await m.logout();
+    write.resolve();
+    await deleting;
+    expect(m.deleteStatus).toBe("");
+    expect(m.deleteTarget).toBeNull();
+    expect(m.distance?.totalDistance).toBe(42);
+    expect(m.selected).toEqual([point]);
+    expect(m.deletePending).toBe(false);
+    m.destroy();
+  });
+});
+
+describe("editor scope recovery races", () => {
+  it("does not report logout success if the server still reports editor access", async () => {
+    const api = new Api();
+    vi.spyOn(api, "session").mockResolvedValue(session);
+    vi.spyOn(api, "logout").mockResolvedValue(undefined);
+    const m = new AppModel(api);
+    await m.refreshSession();
+    await m.logout();
+    expect(m.logoutFailed).toBe(true);
+    expect(m.canEdit).toBe(false);
+    m.destroy();
+  });
+  it("deduplicates visibility and focus rechecks and skips them during logout", async () => {
+    const api = new Api();
+    const pending = deferred<typeof session>();
+    const get = vi.spyOn(api, "session").mockReturnValue(pending.promise);
+    const m = new AppModel(api);
+    const first = m.recheckSession();
+    const second = m.recheckSession();
+    expect(get).toHaveBeenCalledTimes(1);
+    pending.resolve(session);
+    await first;
+    await second;
+    m.accessPending = true;
+    await m.recheckSession();
+    expect(get).toHaveBeenCalledTimes(1);
+    m.destroy();
+  });
+  it("cannot unlock a new editor save when an old save completes", async () => {
+    const api = new Api();
+    const get = vi.spyOn(api, "session").mockResolvedValue(session);
+    vi.spyOn(api, "logout").mockImplementation(async () => {
+      get.mockResolvedValue({ ...session, can_edit: false });
+    });
+    const old = deferred<GeoItem[]>(),
+      current = deferred<GeoItem[]>();
+    const write = vi
+      .spyOn(api, "save")
+      .mockReturnValueOnce(old.promise)
+      .mockReturnValueOnce(current.promise);
+    const m = new AppModel(api);
+    await m.refreshSession();
+    m.setAddMode(true);
+    m.addDraft(52, 35);
+    const first = m.save();
+    await vi.waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+    await m.logout();
+    get.mockResolvedValue(session);
+    await m.refreshSession();
+    m.setAddMode(true);
+    m.addDraft(53, 36);
+    const id = m.drafts[0]!.id;
+    const second = m.save();
+    await vi.waitFor(() => expect(write).toHaveBeenCalledTimes(2));
+    old.resolve([point]);
+    await first;
+    expect(m.savePending).toBe(true);
+    expect(m.savingIds).toEqual([id]);
+    expect(m.drafts[0]?.lat).toBe(53);
+    current.resolve([point]);
+    await second;
+    expect(m.savePending).toBe(false);
+    m.destroy();
+  });
+});
+
+it("hides editing on an unavailable session check without discarding recoverable drafts", async () => {
+  const api = new Api();
+  const get = vi.spyOn(api, "session").mockResolvedValue(session);
+  const m = new AppModel(api);
+  await m.refreshSession();
+  m.setAddMode(true);
+  m.addDraft(52, 35);
+  get.mockRejectedValueOnce(new Error("offline"));
+  await m.recheckSession();
+  expect(m.canEdit).toBe(false);
+  expect(m.addMode).toBe(false);
+  expect(m.drafts).toHaveLength(1);
+  await m.recheckSession();
+  expect(m.canEdit).toBe(true);
+  expect(m.drafts).toHaveLength(1);
+  get.mockResolvedValue({ ...session, can_edit: false });
+  await m.recheckSession();
+  expect(m.drafts).toEqual([]);
+  m.destroy();
 });

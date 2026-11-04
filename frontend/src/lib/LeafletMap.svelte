@@ -195,7 +195,7 @@
 
   $effect(() => {
     const instance = map;
-    const drafts = model.drafts;
+    const drafts = model.canEdit ? model.drafts : [];
     const extent = view;
     if (!instance) return;
     const group = L.layerGroup().addTo(instance);
