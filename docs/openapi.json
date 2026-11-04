@@ -29,6 +29,11 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "403": {
@@ -38,6 +43,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -49,6 +59,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "503": {
@@ -58,6 +73,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -69,6 +89,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "406": {
@@ -79,6 +104,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "413": {
@@ -88,6 +118,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           }
@@ -137,6 +172,11 @@
                   "$ref": "#/components/schemas/CreatedPoints"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "400": {
@@ -146,6 +186,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -157,6 +202,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "403": {
@@ -166,6 +216,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -177,6 +232,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "413": {
@@ -186,6 +246,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -197,6 +262,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "500": {
@@ -207,6 +277,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "503": {
@@ -216,6 +291,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           }
@@ -244,7 +324,12 @@
         ],
         "responses": {
           "204": {
-            "description": "Удалена ровно одна точка, без тела ответа"
+            "description": "Удалена ровно одна точка, без тела ответа",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
           },
           "400": {
             "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
@@ -253,6 +338,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -264,6 +354,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "403": {
@@ -273,6 +368,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -284,6 +384,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "406": {
@@ -293,6 +398,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -304,6 +414,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "503": {
@@ -313,6 +428,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           }
@@ -343,6 +463,11 @@
                   "$ref": "#/components/schemas/DistanceResult"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "400": {
@@ -352,6 +477,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -363,6 +493,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "406": {
@@ -372,6 +507,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -383,6 +523,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "415": {
@@ -392,6 +537,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -403,6 +553,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "503": {
@@ -412,6 +567,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           }
@@ -453,6 +613,11 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "500": {
@@ -463,6 +628,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "503": {
@@ -472,6 +642,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           }
@@ -495,6 +670,11 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "400": {
@@ -504,6 +684,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -515,6 +700,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "406": {
@@ -524,6 +714,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -535,6 +730,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "500": {
@@ -545,6 +745,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "503": {
@@ -554,6 +759,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           }
@@ -586,6 +796,11 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "400": {
@@ -595,6 +810,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -606,6 +826,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "406": {
@@ -615,6 +840,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -626,6 +856,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "500": {
@@ -636,6 +871,11 @@
                   "$ref": "#/components/schemas/ApiError"
                 }
               }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
             }
           },
           "503": {
@@ -645,6 +885,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
               }
             }
           }
@@ -658,6 +903,183 @@
           }
         ],
         "description": "Полный подходящий набор только при≤500 source-объектов в bbox. При превышении 413 spatial_limit_exceeded, без частичного успеха. GiST/точный spatial predicate в CRS хранения до GeoJSON. Бюджет SQL2 с; timeout503 spatial_query_timeout. Дороги требуют highway, полигоны — name. В viewport геометрия обрезается в 3857, сохраняется нужная размерность и topology; simplify tolerance=max(0.05,156543.03392804097/2^zoom) метров WebMercator (1pixel). Empty/boundary-only части меньшей размерности исключаются. Максимум 5000 выходных вершин/объект и 20000/слой, превышение 413 spatial_geometry_limit_exceeded. OSM bbox обрезается по±85.0511287798066."
+      }
+    },
+    "/actuator/health": {
+      "get": {
+        "summary": "Состояние приложения и БД",
+        "security": [],
+        "description": "Только status, без конфигурации и компонентов, в том числе для редактора. Другие management endpoints не опубликованы.",
+        "responses": {
+          "200": {
+            "description": "UP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v3+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v2+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "DOWN или OUT_OF_SERVICE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v3+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v2+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/actuator/health/liveness": {
+      "get": {
+        "summary": "Жизнеспособность процесса; не зависит от БД",
+        "security": [],
+        "description": "Только status, без конфигурации и компонентов, в том числе для редактора. Другие management endpoints не опубликованы.",
+        "responses": {
+          "200": {
+            "description": "UP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v3+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v2+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "DOWN или OUT_OF_SERVICE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v3+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v2+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/actuator/health/readiness": {
+      "get": {
+        "summary": "Готовность принимать запросы; включает SELECT 1 в БД",
+        "security": [],
+        "description": "Только status, без конфигурации и компонентов, в том числе для редактора. Другие management endpoints не опубликованы.",
+        "responses": {
+          "200": {
+            "description": "UP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v3+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v2+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "DOWN или OUT_OF_SERVICE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v3+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v2+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -955,6 +1377,24 @@
             ]
           }
         }
+      },
+      "Health": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "UP",
+              "DOWN",
+              "OUT_OF_SERVICE",
+              "UNKNOWN"
+            ]
+          }
+        }
       }
     },
     "parameters": {
@@ -979,6 +1419,15 @@
           "minimum": 0,
           "maximum": 22,
           "default": 22
+        }
+      }
+    },
+    "headers": {
+      "RequestId": {
+        "description": "Сгенерированный сервером UUID; тот же request_id в безопасном журнале. Входной X-Request-ID игнорируется.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
         }
       }
     }

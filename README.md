@@ -66,13 +66,14 @@ make check         # Svelte/TypeScript, синтаксис Python и Git whitesp
 make test-frontend # Vitest-регрессии без БД
 make test-infra    # CLI unit-тесты без Docker
 make install-browser # Установить зависимости браузерных тестов и Chromium
+make test-diagnostics # Безопасные логи, probes, отказ БД и graceful shutdown
 make test-browser  # Popup/XSS и пакетное сохранение, отдельные PostGIS и приложение
 make test          # Все тесты, отдельный временный PostGIS создаётся автоматически
 make verify        # Проверки, тесты и сборка JAR
 make lint          # ESLint frontend и браузерных тестов
 make format-check  # Prettier frontend и Spotless Java
 make format        # Применить форматирование
-make ci            # Lint, формат, verify и браузерные тесты
+make ci            # Lint, формат, verify, диагностика процесса и браузерные тесты
 make benchmark-spatial # Изолированные SQL/HTTP измерения и EXPLAIN
 make dev-frontend  # Vite с HMR и same-origin API proxy
 make build         # Vite build и JAR без запуска тестов
@@ -85,6 +86,9 @@ SQL перед `make verify` не требуется. Для внешнего т
 
 Для изменений popup и UI сохранения точек дополнительно запускай `make test-browser`.
 [Подготовка и границы браузерной проверки](docs/browser-tests.md).
+[Диагностика запуска, request ID, health и таймауты](docs/diagnostics.md).
+`make test-diagnostics` проверяет упакованный процесс и отказ БД в собственном
+изолированном окружении; `make ci` включает эту проверку.
 [Карта покрытия API/PostGIS/UI и численные эталоны](docs/testing.md).
 [Ограничения bbox/детализации и воспроизводимые измерения](docs/spatial-queries.md).
 

@@ -4,7 +4,7 @@
 MAVEN_ARGS ?=
 export MAVEN_ARGS BACKUP_FILE CONFIRM_RESTORE
 
-.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra install-browser test-browser test verify lint format-check format ci dev-frontend benchmark-spatial
+.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra install-browser test-browser test-diagnostics test verify lint format-check format ci dev-frontend benchmark-spatial
 
 help:
 	@printf '%s\n' \
@@ -25,6 +25,7 @@ help:
 	  'make build   Build the application JAR without running tests' \
 	  'make test-frontend  Run frontend Vitest regressions' \
 	  'make install-browser  Install pinned browser test dependencies and Chromium' \
+	  'make test-diagnostics  Check safe logs, health, DB failure and graceful shutdown' \
 	  'make test-browser  Run popup and batch-save regressions on disposable PostGIS and app' \
 	  'make test    Run tests using a disposable, isolated PostGIS' \
 	  'make verify  Run checks, tests and build the application JAR'
@@ -61,7 +62,7 @@ db-restore:
 
 check:
 	npm --prefix frontend run check
-	python3 -m py_compile infra/manage.py infra/browser_test.py
+	python3 -m py_compile infra/manage.py infra/browser_test.py infra/application_probe.py infra/diagnostics_test.py
 	git diff --check
 
 build:
@@ -79,6 +80,9 @@ install-browser:
 
 test-browser:
 	python3 infra/browser_test.py
+
+test-diagnostics:
+	python3 infra/diagnostics_test.py
 
 test: test-frontend test-infra
 	python3 infra/manage.py test
@@ -101,6 +105,7 @@ format:
 ci:
 	$(MAKE) lint format-check
 	$(MAKE) verify
+	$(MAKE) test-diagnostics
 	$(MAKE) test-browser
 
 dev-frontend:

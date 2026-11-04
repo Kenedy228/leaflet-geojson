@@ -21,7 +21,9 @@ Runner — Ubuntu 24.04. Maven Wrapper закрепляет Maven 3.9.11 и пр
    JSON и тестов; Spotless/google-java-format 1.34.0 для Java.
 2. `make verify`: Svelte/TypeScript strict, синтаксис Python, Git whitespace, Vitest/CLI tests,
    backend-тесты на настоящем PostGIS с production Flyway и сборка JAR.
-3. `make test-browser`: отдельные временные PostGIS и приложение, Chromium,
+3. `make test-diagnostics`: упакованный JAR, безопасные структурированные логи,
+   request ID, probes, отказ/восстановление БД и graceful shutdown на собственной БД.
+4. `make test-browser`: отдельные временные PostGIS и приложение, Chromium,
    проверки API/UI, XSS и доступности.
 
 Frontend собирается Vite в Maven generate-resources, только dist попадает в JAR.
