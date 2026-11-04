@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Leaflet GIS — публичный HTTP-контракт",
-    "version": "0.0.1-SNAPSHOT",
+    "version": "1.0.0",
     "description": "Реализованный контракт domain API, сессии, серверной формы входа/выхода и status-only health. Статические ресурсы не являются domain API. Существующие пути и totalDistance сохранены для совместимости v1. JSON строгий: без coercion строк/чисел, неизвестных/повторных полей и trailing tokens. Ограничения Jackson: depth16, string4096, number64, document4194304 входных единиц. Ошибки всегда code/message; неизвестные unsafe маршруты могут быть отклонены Security403 до MVC405. GET/HEAD/OPTIONS не эквивалентны по Security: HEAD слоёв публичен и выполняет тот же запрос без тела; HEAD session/health и обычный OPTIONS API отклоняются (анонимный API 401, редактор 403). CORS preflight обрабатывается до авторизации: по умолчанию 403; точный необязательный allowlist только /api/v1/osm/** разрешает GET/POST/DELETE и Content-Type, публикует X-Request-ID, без credentials и CSRF-заголовка. HEAD/OPTIONS не входят в список разрешённых CORS methods. Неподдерживаемый GET существующего POST/DELETE пути может дать MVC405; unsafe методы могут получить CSRF403 раньше MVC. Ошибки HEAD также без тела."
   },
   "servers": [
