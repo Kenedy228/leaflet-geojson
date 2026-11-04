@@ -35,6 +35,8 @@ Backend импортирован снимком из https://github.com/Kenedy22
 Архитектура, модель данных, сценарии и критерии готовности описаны в `docs/`: см.
 [architecture.md](docs/architecture.md), [data-model.md](docs/data-model.md),
 [api.md](docs/api.md) и [readiness.md](docs/readiness.md).
+Сценарий презентации и происхождение скриншотов — [demo.md](docs/demo.md).
+Код приложения — MIT ([LICENSE](LICENSE)); OSM-данные сохраняют ODbL/атрибуцию.
 Flyway уже содержит V1/V2 пользовательской модели и V3 bootstrap OSM, а `infra/`
 поднимает локальную БД. Svelte и полный OpenAPI реализованы. CI — `.github/workflows/ci.yml`.
 Канонический контракт геослоёв, точек/distance/session, login/logout и health находится в

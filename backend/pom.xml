@@ -15,7 +15,11 @@
 	<description>Demo project for Spring Boot</description>
 	<url/>
 	<licenses>
-		<license/>
+		<license>
+			<name>MIT License</name>
+			<url>https://opensource.org/license/mit</url>
+			<distribution>repo</distribution>
+		</license>
 	</licenses>
 	<developers>
 		<developer/>
@@ -80,6 +84,11 @@
 
 	<build>
 		<resources>
+			<resource>
+				<directory>${project.basedir}/..</directory>
+				<targetPath>META-INF</targetPath>
+				<includes><include>LICENSE</include></includes>
+			</resource>
 			<resource>
 				<directory>src/main/resources</directory>
 			</resource>
