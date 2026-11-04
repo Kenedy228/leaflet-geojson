@@ -1,0 +1,2606 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Leaflet GIS — публичный HTTP-контракт",
+    "version": "1.0.0",
+    "description": "Реализованный контракт domain API, сессии, серверной формы входа/выхода и status-only health. Статические ресурсы не являются domain API. Существующие пути и totalDistance сохранены для совместимости v1. JSON строгий: без coercion строк/чисел, неизвестных/повторных полей и trailing tokens. Ограничения Jackson: depth16, string4096, number64, document4194304 входных единиц. Ошибки всегда code/message; неизвестные unsafe маршруты могут быть отклонены Security403 до MVC405. GET/HEAD/OPTIONS не эквивалентны по Security: HEAD слоёв публичен и выполняет тот же запрос без тела; HEAD session/health и обычный OPTIONS API отклоняются (анонимный API 401, редактор 403). CORS preflight обрабатывается до авторизации: по умолчанию 403; точный необязательный allowlist только /api/v1/osm/** разрешает GET/POST/DELETE и Content-Type, публикует X-Request-ID, без credentials и CSRF-заголовка. HEAD/OPTIONS не входят в список разрешённых CORS methods. Неподдерживаемый GET существующего POST/DELETE пути может дать MVC405; unsafe методы могут получить CSRF403 раньше MVC. Ошибки HEAD также без тела."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Same-origin локальное приложение"
+    }
+  ],
+  "paths": {
+    "/api/v1/osm/points": {
+      "get": {
+        "summary": "Публичное чтение импортированных и пользовательских точек",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Complete bounded display layer; no success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "maxItems": 500,
+                  "items": {
+                    "$ref": "#/components/schemas/Point"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "500": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "spatial_query_timeout после 2 с бюджета либо service_unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_spatial_query: некорректный, пустой, повторяющийся или nonfinite bbox/zoom.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "413": {
+            "description": "spatial_limit_exceeded (>500 объектов) или spatial_geometry_limit_exceeded (>5000 вершин/объект либо>20000/слой). Сузить bbox/приблизить карту; частичного успеха нет.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Bbox"
+          },
+          {
+            "$ref": "#/components/parameters/MapZoom"
+          }
+        ],
+        "description": "Полный подходящий набор только при≤500 source-объектов в bbox. При превышении 413 spatial_limit_exceeded, без частичного успеха. GiST/точный spatial predicate в CRS хранения до GeoJSON. Бюджет SQL2 с; timeout503 spatial_query_timeout. Общий лимит для именованных OSM-точек 3857 и пользовательских 4326. Точки остаются точными, userpoints включают допустимые полюса; OSM bbox обрезается по±85.0511287798066.",
+        "operationId": "get_api_v1_osm_points"
+      },
+      "head": {
+        "summary": "Заголовки Публичное чтение импортированных и пользовательских точек",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Complete bounded display layer; no success envelope.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "500": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "spatial_query_timeout после 2 с бюджета либо service_unavailable.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_spatial_query: некорректный, пустой, повторяющийся или nonfinite bbox/zoom.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "413": {
+            "description": "spatial_limit_exceeded (>500 объектов) или spatial_geometry_limit_exceeded (>5000 вершин/объект либо>20000/слой). Сузить bbox/приблизить карту; частичного успеха нет.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Bbox"
+          },
+          {
+            "$ref": "#/components/parameters/MapZoom"
+          }
+        ],
+        "description": "Тот же bounded SQL и статусы, что GET; HTTP-тело всегда отсутствует.",
+        "operationId": "head_points"
+      },
+      "options": {
+        "operationId": "options_api_v1_osm_points",
+        "summary": "Security/CORS обработка OPTIONS",
+        "description": "Без Origin: анонимный запрос 401, аутентифицированный 403. Preflight (Origin + Access-Control-Request-Method): по умолчанию 403. Необязательный CORS_ALLOWED_ORIGINS действует только для /api/v1/osm/**: точный origin, запрошенный GET/POST/DELETE и только Content-Type дают 200 без тела. X-Request-ID открыт клиенту; credentials и X-CSRF-TOKEN не разрешены. На /api/v1/session allowlist не действует.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Только разрешённый CORS preflight; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "401": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/osm/points/add": {
+      "post": {
+        "summary": "Атомарно создать пакет общих пользовательских точек",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "description": "Нужны EDITING_ENABLED=true и роль EDITOR. Все записи валидируются до SQL. Отказ любой вставки откатывает пакет. Идемпотентности нет; потеря ответа не доказывает отсутствие записи.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 1000,
+                "items": {
+                  "$ref": "#/components/schemas/NewPoint"
+                }
+              },
+              "example": [
+                {
+                  "name": "Контракт",
+                  "lat": 52.34,
+                  "lng": 35.35
+                }
+              ]
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Полные созданные объекты в порядке запроса, уникальные UUID от БД",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedPoints"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "401": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "413": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "415": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "500": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "operationId": "post_api_v1_osm_points_add"
+      },
+      "options": {
+        "operationId": "options_api_v1_osm_points_add",
+        "summary": "Security/CORS обработка OPTIONS",
+        "description": "Без Origin: анонимный запрос 401, аутентифицированный 403. Preflight (Origin + Access-Control-Request-Method): по умолчанию 403. Необязательный CORS_ALLOWED_ORIGINS действует только для /api/v1/osm/**: точный origin, запрошенный GET/POST/DELETE и только Content-Type дают 200 без тела. X-Request-ID открыт клиенту; credentials и X-CSRF-TOKEN не разрешены. На /api/v1/session allowlist не действует.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Только разрешённый CORS preflight; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "401": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "operationId": "head_api_v1_osm_points_add",
+        "summary": "HEAD отклоняется Security",
+        "description": "Анонимный запрос 401; редактор 403. Тела нет.",
+        "security": [],
+        "responses": {
+          "401": {
+            "description": "Требуется аутентификация; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "Запрещено; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/osm/points/{id}": {
+      "delete": {
+        "summary": "Удалить пользовательскую точку",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Полный user:<uuid>. UUID должен иметь канонические группы 8-4-4-4-12; регистр hex допускается. osm:* всегда readonly."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Удалена ровно одна точка, без тела ответа",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "401": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "404": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "500": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "operationId": "delete_api_v1_osm_points_id"
+      },
+      "options": {
+        "operationId": "options_api_v1_osm_points_id",
+        "summary": "Security/CORS обработка OPTIONS",
+        "description": "Без Origin: анонимный запрос 401, аутентифицированный 403. Preflight (Origin + Access-Control-Request-Method): по умолчанию 403. Необязательный CORS_ALLOWED_ORIGINS действует только для /api/v1/osm/**: точный origin, запрошенный GET/POST/DELETE и только Content-Type дают 200 без тела. X-Request-ID открыт клиенту; credentials и X-CSRF-TOKEN не разрешены. На /api/v1/session allowlist не действует.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Только разрешённый CORS preflight; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "401": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Полный user:<uuid>. UUID должен иметь канонические группы 8-4-4-4-12; регистр hex допускается. osm:* всегда readonly."
+          }
+        ]
+      },
+      "head": {
+        "operationId": "head_api_v1_osm_points_id",
+        "summary": "HEAD отклоняется Security",
+        "description": "Анонимный запрос 401; редактор 403. Тела нет.",
+        "security": [],
+        "responses": {
+          "401": {
+            "description": "Требуется аутентификация; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "Запрещено; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Полный user:<uuid>. UUID должен иметь канонические группы 8-4-4-4-12; регистр hex допускается. osm:* всегда readonly."
+          }
+        ]
+      }
+    },
+    "/api/v1/osm/distances": {
+      "post": {
+        "summary": "Геодезические расстояния между последовательными парами точек",
+        "security": [],
+        "description": "Публичный SELECT-only расчёт. Единственный POST, исключённый из CSRF. WGS84 geography, метры, сумма сегментов; повторяющиеся координаты могут давать 0. Не автомобильный маршрут. Максимум 1000 точек. Все последовательные сегменты — один параметризованный SQL с WGS84 geography, сохранением порядка и нулевых участков. Тот же 2 с query budget,503 spatial_query_timeout. Максимум 1000 точек. Все последовательные сегменты — один параметризованный SQL с WGS84 geography, сохранением порядка и нулевых участков. Тот же 2 с query budget,503 spatial_query_timeout. Максимум 1000 точек. Все последовательные сегменты — один параметризованный SQL с WGS84 geography, сохранением порядка и нулевых участков. Тот же 2 с query budget,503 spatial_query_timeout.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DistanceRequest"
+              },
+              "example": {
+                "points": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    1,
+                    0
+                  ]
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Сегменты и сумма в метрах",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistanceResult"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "413": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "415": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "500": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "operationId": "post_api_v1_osm_distances"
+      },
+      "options": {
+        "operationId": "options_api_v1_osm_distances",
+        "summary": "Security/CORS обработка OPTIONS",
+        "description": "Без Origin: анонимный запрос 401, аутентифицированный 403. Preflight (Origin + Access-Control-Request-Method): по умолчанию 403. Необязательный CORS_ALLOWED_ORIGINS действует только для /api/v1/osm/**: точный origin, запрошенный GET/POST/DELETE и только Content-Type дают 200 без тела. X-Request-ID открыт клиенту; credentials и X-CSRF-TOKEN не разрешены. На /api/v1/session allowlist не действует.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Только разрешённый CORS preflight; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "401": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "operationId": "head_api_v1_osm_distances",
+        "summary": "HEAD отклоняется Security",
+        "description": "Анонимный запрос 401; редактор 403. Тела нет.",
+        "security": [],
+        "responses": {
+          "401": {
+            "description": "Требуется аутентификация; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "Запрещено; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/session": {
+      "get": {
+        "summary": "Текущее состояние прав и свежий сессионный CSRF",
+        "security": [],
+        "description": "Cache-Control: no-store. Получать после login/logout; старый CSRF после входа не действует. Пароль и session cookie в тело не включаются.",
+        "responses": {
+          "200": {
+            "description": "Текущая сессия",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "editing_enabled",
+                    "can_edit",
+                    "csrf_header",
+                    "csrf_token"
+                  ],
+                  "properties": {
+                    "editing_enabled": {
+                      "type": "boolean"
+                    },
+                    "can_edit": {
+                      "type": "boolean"
+                    },
+                    "csrf_header": {
+                      "type": "string",
+                      "const": "X-CSRF-TOKEN"
+                    },
+                    "csrf_token": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "Безопасная ошибка приложения; без SQL/stack trace/реквизитов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "operationId": "get_api_v1_session"
+      },
+      "options": {
+        "operationId": "options_api_v1_session",
+        "summary": "Security/CORS обработка OPTIONS",
+        "description": "Без Origin: анонимный запрос 401, аутентифицированный 403. Preflight (Origin + Access-Control-Request-Method): по умолчанию 403. Необязательный CORS_ALLOWED_ORIGINS действует только для /api/v1/osm/**: точный origin, запрошенный GET/POST/DELETE и только Content-Type дают 200 без тела. X-Request-ID открыт клиенту; credentials и X-CSRF-TOKEN не разрешены. На /api/v1/session allowlist не действует.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Только разрешённый CORS preflight; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "401": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "operationId": "head_api_v1_session",
+        "summary": "HEAD отклоняется Security",
+        "description": "Анонимный запрос 401; редактор 403. Тела нет.",
+        "security": [],
+        "responses": {
+          "401": {
+            "description": "Требуется аутентификация; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "Запрещено; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/osm/roads": {
+      "get": {
+        "summary": "Read bounded roads",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Complete bounded display layer; no success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "maxItems": 500,
+                  "items": {
+                    "$ref": "#/components/schemas/Road"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_spatial_query: некорректный, пустой, повторяющийся или nonfinite bbox/zoom.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "413": {
+            "description": "spatial_limit_exceeded (>500 объектов) или spatial_geometry_limit_exceeded (>5000 вершин/объект либо>20000/слой). Сузить bbox/приблизить карту; частичного успеха нет.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "500": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "spatial_query_timeout после 2 с бюджета либо service_unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Bbox"
+          },
+          {
+            "$ref": "#/components/parameters/MapZoom"
+          }
+        ],
+        "description": "Полный подходящий набор только при≤500 source-объектов в bbox. При превышении 413 spatial_limit_exceeded, без частичного успеха. GiST/точный spatial predicate в CRS хранения до GeoJSON. Бюджет SQL2 с; timeout503 spatial_query_timeout. Дороги требуют highway, полигоны — name. В viewport геометрия обрезается в 3857, сохраняется нужная размерность и topology; simplify tolerance=max(0.05,156543.03392804097/2^zoom) метров WebMercator (1pixel). Empty/boundary-only части меньшей размерности исключаются. Максимум 5000 выходных вершин/объект и 20000/слой, превышение 413 spatial_geometry_limit_exceeded. OSM bbox обрезается по±85.0511287798066.",
+        "operationId": "get_api_v1_osm_roads"
+      },
+      "head": {
+        "summary": "Заголовки Read bounded roads",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Complete bounded display layer; no success envelope.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_spatial_query: некорректный, пустой, повторяющийся или nonfinite bbox/zoom.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "413": {
+            "description": "spatial_limit_exceeded (>500 объектов) или spatial_geometry_limit_exceeded (>5000 вершин/объект либо>20000/слой). Сузить bbox/приблизить карту; частичного успеха нет.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "500": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "spatial_query_timeout после 2 с бюджета либо service_unavailable.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Bbox"
+          },
+          {
+            "$ref": "#/components/parameters/MapZoom"
+          }
+        ],
+        "description": "Тот же bounded SQL и статусы, что GET; HTTP-тело всегда отсутствует.",
+        "operationId": "head_roads"
+      },
+      "options": {
+        "operationId": "options_api_v1_osm_roads",
+        "summary": "Security/CORS обработка OPTIONS",
+        "description": "Без Origin: анонимный запрос 401, аутентифицированный 403. Preflight (Origin + Access-Control-Request-Method): по умолчанию 403. Необязательный CORS_ALLOWED_ORIGINS действует только для /api/v1/osm/**: точный origin, запрошенный GET/POST/DELETE и только Content-Type дают 200 без тела. X-Request-ID открыт клиенту; credentials и X-CSRF-TOKEN не разрешены. На /api/v1/session allowlist не действует.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Только разрешённый CORS preflight; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "401": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/osm/polygons": {
+      "get": {
+        "summary": "Read bounded polygons",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Complete bounded display layer; no success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "maxItems": 500,
+                  "items": {
+                    "$ref": "#/components/schemas/Polygon"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_spatial_query: некорректный, пустой, повторяющийся или nonfinite bbox/zoom.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "413": {
+            "description": "spatial_limit_exceeded (>500 объектов) или spatial_geometry_limit_exceeded (>5000 вершин/объект либо>20000/слой). Сузить bbox/приблизить карту; частичного успеха нет.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "500": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "spatial_query_timeout после 2 с бюджета либо service_unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Bbox"
+          },
+          {
+            "$ref": "#/components/parameters/MapZoom"
+          }
+        ],
+        "description": "Полный подходящий набор только при≤500 source-объектов в bbox. При превышении 413 spatial_limit_exceeded, без частичного успеха. GiST/точный spatial predicate в CRS хранения до GeoJSON. Бюджет SQL2 с; timeout503 spatial_query_timeout. Дороги требуют highway, полигоны — name. В viewport геометрия обрезается в 3857, сохраняется нужная размерность и topology; simplify tolerance=max(0.05,156543.03392804097/2^zoom) метров WebMercator (1pixel). Empty/boundary-only части меньшей размерности исключаются. Максимум 5000 выходных вершин/объект и 20000/слой, превышение 413 spatial_geometry_limit_exceeded. OSM bbox обрезается по±85.0511287798066.",
+        "operationId": "get_api_v1_osm_polygons"
+      },
+      "head": {
+        "summary": "Заголовки Read bounded polygons",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Complete bounded display layer; no success envelope.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_spatial_query: некорректный, пустой, повторяющийся или nonfinite bbox/zoom.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "413": {
+            "description": "spatial_limit_exceeded (>500 объектов) или spatial_geometry_limit_exceeded (>5000 вершин/объект либо>20000/слой). Сузить bbox/приблизить карту; частичного успеха нет.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "500": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "spatial_query_timeout после 2 с бюджета либо service_unavailable.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Bbox"
+          },
+          {
+            "$ref": "#/components/parameters/MapZoom"
+          }
+        ],
+        "description": "Тот же bounded SQL и статусы, что GET; HTTP-тело всегда отсутствует.",
+        "operationId": "head_polygons"
+      },
+      "options": {
+        "operationId": "options_api_v1_osm_polygons",
+        "summary": "Security/CORS обработка OPTIONS",
+        "description": "Без Origin: анонимный запрос 401, аутентифицированный 403. Preflight (Origin + Access-Control-Request-Method): по умолчанию 403. Необязательный CORS_ALLOWED_ORIGINS действует только для /api/v1/osm/**: точный origin, запрошенный GET/POST/DELETE и только Content-Type дают 200 без тела. X-Request-ID открыт клиенту; credentials и X-CSRF-TOKEN не разрешены. На /api/v1/session allowlist не действует.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Только разрешённый CORS preflight; без тела",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "401": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/actuator/health": {
+      "get": {
+        "summary": "Состояние приложения и БД",
+        "security": [],
+        "description": "Только status, без конфигурации и компонентов, в том числе для редактора. Другие management endpoints не опубликованы.",
+        "responses": {
+          "200": {
+            "description": "UP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v3+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v2+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "DOWN или OUT_OF_SERVICE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v3+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v2+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_spatial_query: некорректный, пустой, повторяющийся или nonfinite bbox/zoom.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "500": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "operationId": "get_actuator_health"
+      }
+    },
+    "/actuator/health/liveness": {
+      "get": {
+        "summary": "Жизнеспособность процесса; не зависит от БД",
+        "security": [],
+        "description": "Только status, без конфигурации и компонентов, в том числе для редактора. Другие management endpoints не опубликованы.",
+        "responses": {
+          "200": {
+            "description": "UP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v3+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v2+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "DOWN или OUT_OF_SERVICE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v3+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v2+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_spatial_query: некорректный, пустой, повторяющийся или nonfinite bbox/zoom.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "500": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "operationId": "get_actuator_health_liveness"
+      }
+    },
+    "/actuator/health/readiness": {
+      "get": {
+        "summary": "Готовность принимать запросы; включает SELECT 1 в БД",
+        "security": [],
+        "description": "Только status, без конфигурации и компонентов, в том числе для редактора. Другие management endpoints не опубликованы.",
+        "responses": {
+          "200": {
+            "description": "UP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v3+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v2+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "503": {
+            "description": "DOWN или OUT_OF_SERVICE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v3+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              },
+              "application/vnd.spring-boot.actuator.v2+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_spatial_query: некорректный, пустой, повторяющийся или nonfinite bbox/zoom.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "406": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "500": {
+            "description": "Safe code/message JSON. No SQL, exception text or credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "operationId": "get_actuator_health_readiness"
+      }
+    },
+    "/login": {
+      "get": {
+        "summary": "HTML-форма входа редактора",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Сгенерированная Spring Security HTML-форма с CSRF; не JSON.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_login"
+      },
+      "post": {
+        "summary": "Вход через form-urlencoded",
+        "description": "CSRF из той же cookie-сессии: скрытое поле _csrf либо X-CSRF-TOKEN. После успеха session id меняется и нужен свежий CSRF. Даже при Accept: application/json ответ является 302; не следует автоматически следовать redirect при проверке статуса. В readonly-профиле пользователей нет.",
+        "security": [
+          {
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password"
+                  },
+                  "_csrf": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Без JSON; Location / при успехе, /login?error при ошибке учётных данных.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Location": {
+                "required": true,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "operationId": "post_login"
+      }
+    },
+    "/logout": {
+      "get": {
+        "summary": "HTML-подтверждение выхода",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Сгенерированная Spring Security HTML-форма подтверждения выхода с CSRF; не JSON.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_logout"
+      },
+      "post": {
+        "summary": "Завершение сессии",
+        "description": "Требует CSRF той же cookie-сессии. Инвалидирует сессию, очищает JSESSIONID, перенаправляет на /. Следующий GET session создаёт анонимную сессию.",
+        "security": [
+          {
+            "csrfToken": []
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Location /; JSESSIONID удаляется через Set-Cookie.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Location": {
+                "required": true,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "invalid_csrf при отсутствующем/устаревшем CSRF; forbidden при недостаточных правах/CORS; read_only_point для OSM DELETE. Ошибка code/message, no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          }
+        },
+        "operationId": "post_logout"
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "JSESSIONID",
+        "description": "Серверная сессия JSESSIONID, HttpOnly, SameSite=Lax, timeout30m; вход form-urlencoded /login, без Basic. Secure зависит от конфигурации HTTPS."
+      },
+      "csrfToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-TOKEN",
+        "description": "Свежий токен из /api/v1/session; cross-origin credentials не поддерживаются."
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "invalid_request",
+              "invalid_point_batch",
+              "invalid_distance_request",
+              "invalid_point_id",
+              "read_only_point",
+              "point_not_found",
+              "authentication_required",
+              "forbidden",
+              "invalid_csrf",
+              "not_found",
+              "method_not_allowed",
+              "not_acceptable",
+              "payload_too_large",
+              "unsupported_media_type",
+              "internal_error",
+              "service_unavailable",
+              "invalid_spatial_query",
+              "spatial_limit_exceeded",
+              "spatial_geometry_limit_exceeded",
+              "spatial_query_timeout"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "example": {
+          "code": "invalid_distance_request",
+          "message": "Требуется 2–1000 пар [lng,lat]."
+        }
+      },
+      "NewPoint": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "lat",
+          "lng"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "1–255 Unicode code points, не только пробелы (String.isBlank); без NUL и непарных суррогатов.",
+            "pattern": "^[^\\u0000]*$"
+          },
+          "lat": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90,
+            "description": "WGS84; пользовательская геометрия хранится в EPSG:4326."
+          },
+          "lng": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          }
+        }
+      },
+      "Point": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source",
+          "osm_id",
+          "name",
+          "geojson"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Непрозрачный строковый ID osm:<bigint> или user:<uuid>; не JavaScript Number."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "osm",
+              "user"
+            ]
+          },
+          "osm_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "geojson": {
+            "type": "string",
+            "description": "Существующий v1 формат: JSON-строка GeoJSON Point, координаты [lng,lat]."
+          }
+        }
+      },
+      "CoordinatePair": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "prefixItems": [
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90,
+            "description": "WGS84; пользовательская геометрия хранится в EPSG:4326."
+          }
+        ],
+        "items": false
+      },
+      "CreatedPoints": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "inserted",
+          "points"
+        ],
+        "properties": {
+          "inserted": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "points": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            }
+          }
+        }
+      },
+      "DistanceRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "points"
+        ],
+        "properties": {
+          "points": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/CoordinatePair"
+            }
+          }
+        }
+      },
+      "DistanceResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "lines",
+          "totalDistance"
+        ],
+        "properties": {
+          "lines": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 999,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "to",
+                "distance"
+              ],
+              "properties": {
+                "from": {
+                  "$ref": "#/components/schemas/CoordinatePair"
+                },
+                "to": {
+                  "$ref": "#/components/schemas/CoordinatePair"
+                },
+                "distance": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "totalDistance": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Legacy v1 camelCase, сохранён для совместимости."
+          }
+        }
+      },
+      "Road": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "osm_id",
+          "name",
+          "highway",
+          "geojson"
+        ],
+        "properties": {
+          "osm_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Legacy reference ID, may exceed JavaScript Number precision. The UI does not convert it into point identity."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "geojson": {
+            "type": "string",
+            "description": "GeoJSON geometry encoded as JSON string; WGS84 [lng,lat]. Clipped and simplified for display using bbox/zoom."
+          },
+          "highway": {
+            "type": "string"
+          }
+        }
+      },
+      "Polygon": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "osm_id",
+          "name",
+          "leisure_type",
+          "landuse_type",
+          "geojson"
+        ],
+        "properties": {
+          "osm_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Legacy reference ID, may exceed JavaScript Number precision. The UI does not convert it into point identity."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "geojson": {
+            "type": "string",
+            "description": "GeoJSON geometry encoded as JSON string; WGS84 [lng,lat]. Clipped and simplified for display using bbox/zoom."
+          },
+          "leisure_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "landuse_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "UP",
+              "DOWN",
+              "OUT_OF_SERVICE",
+              "UNKNOWN"
+            ]
+          }
+        }
+      },
+      "pointsGeometry": {
+        "description": "Схема JSON после разбора geojson-строки v1; WGS84 [lng,lat].",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "coordinates"
+            ],
+            "properties": {
+              "type": {
+                "const": "Point"
+              },
+              "coordinates": {
+                "$ref": "#/components/schemas/CoordinatePair"
+              }
+            }
+          }
+        ]
+      },
+      "roadsGeometry": {
+        "description": "Схема JSON после разбора geojson-строки v1; WGS84 [lng,lat].",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "coordinates"
+            ],
+            "properties": {
+              "type": {
+                "const": "LineString"
+              },
+              "coordinates": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "$ref": "#/components/schemas/CoordinatePair"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "coordinates"
+            ],
+            "properties": {
+              "type": {
+                "const": "MultiLineString"
+              },
+              "coordinates": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/components/schemas/CoordinatePair"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "polygonsGeometry": {
+        "description": "Схема JSON после разбора geojson-строки v1; WGS84 [lng,lat].",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "coordinates"
+            ],
+            "properties": {
+              "type": {
+                "const": "Polygon"
+              },
+              "coordinates": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "array",
+                  "minItems": 4,
+                  "items": {
+                    "$ref": "#/components/schemas/CoordinatePair"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "coordinates"
+            ],
+            "properties": {
+              "type": {
+                "const": "MultiPolygon"
+              },
+              "coordinates": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "array",
+                    "minItems": 4,
+                    "items": {
+                      "$ref": "#/components/schemas/CoordinatePair"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "parameters": {
+      "Bbox": {
+        "name": "bbox",
+        "in": "query",
+        "required": false,
+        "description": "WGS84 west,south,east,north: четыре конечных десятичных числа (exponent допустим), долготы [-180,180], широты [-90,90], south<north. west>east пересекает антимеридиан; нулевая ширина, включая 180→-180, недопустима. Повторение bbox даёт 400. Без bbox — весь мир с теми же лимитами, не безлимитный экспорт.",
+        "schema": {
+          "type": "string",
+          "default": "-180,-90,180,90"
+        },
+        "example": "35.3,52.3,35.4,52.4"
+      },
+      "MapZoom": {
+        "name": "zoom",
+        "in": "query",
+        "required": false,
+        "description": "Целое 0..22; повторение/неверный формат даёт 400. Влияет только на display-детализацию reference-геометрии; координаты точек и distance не упрощаются.",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 22,
+          "default": 22
+        }
+      }
+    },
+    "headers": {
+      "RequestId": {
+        "description": "Сгенерированный сервером UUID; тот же request_id в безопасном журнале. Входной X-Request-ID игнорируется.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    }
+  }
+}

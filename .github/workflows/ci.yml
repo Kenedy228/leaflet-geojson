@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [stage, main]
+  push:
+    branches: [stage, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Monorepo checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      MAVEN_ARGS: -B -ntp
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 25.0.5+8
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: frontend/.node-version
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install locked frontend tools
+        run: npm --prefix frontend ci --ignore-scripts
+      - name: Install Chromium and system dependencies
+        run: npm --prefix frontend exec -- playwright install --with-deps chromium
+      - name: Verify toolchain
+        run: |
+          java --version
+          backend/mvnw --version
+          node --version
+          python3 --version
+          docker compose version
+      - name: Lint, types, format, Vitest, PostGIS, API contract, process diagnostics and browser checks; build JAR
+        run: make ci
+      - name: Test reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-reports
+          path: backend/target/surefire-reports/*.xml
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Application artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: application
+          path: backend/target/gis.jar
+          if-no-files-found: error
+          retention-days: 7
