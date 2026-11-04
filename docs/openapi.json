@@ -1976,7 +1976,7 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Сгенерированная Spring Security HTML-форма с CSRF; не JSON.",
+            "description": "HTML-форма Геоатласа; CSRF загружается из GET /api/v1/session перед отправкой. Cache-Control: no-store; не JSON.",
             "headers": {
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Вход редактора — Геоатлас</title>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">◈</span>
+        <div>
+          <p class="brand-title">Геоатлас</p>
+          <p>Точки. Территории. Расстояния.</p>
+        </div>
+      </div>
+      <a href="/">Вернуться к карте</a>
+    </header>
+    <main class="login-layout">
+      <section class="login-panel" aria-labelledby="login-heading">
+        <p class="login-eyebrow">Рабочее пространство</p>
+        <h1 id="login-heading">Вход редактора</h1>
+        <p id="login-description">
+          Войдите, чтобы создавать и удалять общие точки на карте.
+        </p>
+        <p id="login-error" role="alert" hidden>
+          Неверный логин или пароль. Проверьте данные и повторите вход.
+        </p>
+        <p id="session-status" role="status">Подготовка формы входа…</p>
+        <button id="session-retry" type="button" hidden>Повторить</button>
+        <form
+          action="/login"
+          method="post"
+          aria-describedby="login-description login-error"
+        >
+          <input id="csrf" type="hidden" name="_csrf" />
+          <label for="username">Логин</label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autocomplete="username"
+            required
+            maxlength="64"
+          />
+          <label for="password">Пароль</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+          <button id="login-submit" class="primary" type="submit" disabled>
+            Войти
+          </button>
+        </form>
+        <p class="login-note">
+          Просмотр карты и расчёт расстояний доступны без входа.
+        </p>
+        <a href="/">Продолжить без входа</a>
+        <noscript
+          ><p>
+            Для входа включите JavaScript. Вы можете вернуться к карте.
+          </p></noscript
+        >
+      </section>
+    </main>
+    <script type="module" src="/src/login.ts"></script>
+  </body>
+</html>

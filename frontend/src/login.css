@@ -1,0 +1,65 @@
+.brand .brand-title {
+  font-size: 24px;
+  letter-spacing: -1px;
+  font-weight: 700;
+  margin: 0;
+  color: #19312d;
+}
+.login-layout {
+  display: grid;
+  place-items: start center;
+  padding: clamp(24px, 7vh, 72px) 18px;
+}
+.login-panel {
+  width: min(100%, 440px);
+  padding: clamp(20px, 5vw, 36px);
+  background: white;
+  border: 1px solid #d6e0d9;
+  border-radius: 12px;
+}
+.login-panel h1 {
+  font-size: 28px;
+  line-height: 1.2;
+  margin: 8px 0 14px;
+}
+.login-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #526b5c;
+}
+.login-panel form {
+  margin: 24px 0;
+}
+.login-panel label {
+  display: block;
+  font-weight: 600;
+  margin-top: 16px;
+}
+.login-note {
+  color: #526c63;
+  font-size: 12px;
+}
+.login-panel .primary:hover:not(:disabled) {
+  background: #193e34;
+}
+#login-error {
+  padding: 12px;
+  border: 1px solid #a32929;
+  border-radius: 6px;
+  background: #fff5f4;
+}
+#session-status:empty {
+  display: none;
+}
+@media (max-width: 720px) {
+  .app-header {
+    height: auto;
+    padding: 14px 18px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .login-panel h1 {
+    font-size: 24px;
+  }
+}

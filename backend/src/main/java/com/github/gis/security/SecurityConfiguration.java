@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.gis.api.ApiError;
 import jakarta.servlet.DispatcherType;
 import java.io.IOException;
+import java.util.Map;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +24,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+import org.springframework.security.web.authentication.ui.DefaultLogoutPageGeneratingFilter;
+import org.springframework.security.web.authentication.ui.DefaultResourcesFilter;
 import org.springframework.security.web.csrf.CsrfException;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.DefaultCorsProcessor;
 import org.springframework.web.filter.CorsFilter;
@@ -56,7 +60,16 @@ public class SecurityConfiguration {
         AuthorizationManagers.allOf(
             (authentication, context) -> new AuthorizationDecision(access.enabled()),
             AuthorityAuthorizationManager.hasRole("EDITOR"));
-    return http.cors(Customizer.withDefaults())
+    // Custom login disables both generated pages; retain the published GET /logout contract.
+    var logoutPage = new DefaultLogoutPageGeneratingFilter();
+    logoutPage.setResolveHiddenInputs(
+        request -> {
+          var token = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
+          return token == null ? Map.of() : Map.of(token.getParameterName(), token.getToken());
+        });
+    return http.addFilter(logoutPage)
+        .addFilter(DefaultResourcesFilter.css())
+        .cors(Customizer.withDefaults())
         // Distances is a public SELECT-only calculation; all other unsafe requests retain CSRF.
         .csrf(
             csrf ->
@@ -97,12 +110,12 @@ public class SecurityConfiguration {
                     .permitAll()
                     .anyRequest()
                     .denyAll())
-        .formLogin(form -> form.defaultSuccessUrl("/", true).permitAll())
+        .formLogin(form -> form.loginPage("/login").defaultSuccessUrl("/", true).permitAll())
         .logout(logout -> logout.logoutSuccessUrl("/").deleteCookies("JSESSIONID"))
         .exceptionHandling(
             errors ->
                 errors
-                    // A global custom entry point disables Spring's generated login page.
+                    // API callers receive JSON errors rather than an HTML login redirect.
                     .defaultAuthenticationEntryPointFor(
                         (request, response, exception) -> {
                           ApiError.forStatus(401).write(mapper, response, 401);
