@@ -19,11 +19,13 @@ Runner — Ubuntu 24.04. Maven Wrapper закрепляет Maven 3.9.11 и пр
 
 1. ESLint Svelte/TypeScript и browser tests; Prettier Svelte/TS, HTML, CSS,
    JSON и тестов; Spotless/google-java-format 1.34.0 для Java.
-2. `make verify`: Svelte/TypeScript strict, синтаксис Python, Git whitespace, Vitest/CLI tests,
+2. `make verify`: OpenAPI/schema-примеры, Svelte/TypeScript strict, синтаксис Python, Git whitespace, Vitest/CLI tests,
    backend-тесты на настоящем PostGIS с production Flyway и сборка JAR.
-3. `make test-diagnostics`: упакованный JAR, безопасные структурированные логи,
+3. `make test-contract`: собственный JAR/PostGIS, реальные HTTP-ответы, статусы,
+   session/login/logout/CSRF и schema-совместимость с OpenAPI.
+4. `make test-diagnostics`: упакованный JAR, безопасные структурированные логи,
    request ID, probes, отказ/восстановление БД и graceful shutdown на собственной БД.
-4. `make test-browser`: отдельные временные PostGIS и приложение, Chromium,
+5. `make test-browser`: отдельные временные PostGIS и приложение, Chromium,
    проверки API/UI, XSS и доступности.
 
 Frontend собирается Vite в Maven generate-resources, только dist попадает в JAR.
@@ -60,3 +62,14 @@ GitHub читает `.github/dependabot.yml` из **default branch**, сейча
 в настройках GitHub нужно выбрать проверку `Monorepo checks`.
 
 Dev-only advisory Svelte Vite plugin описан в [frontend.md](frontend.md#проверки-и-ограничения).
+
+## Проверка OpenAPI
+
+`make check-openapi` использует закреплённые swagger-parser 13.1.0, Ajv 8.20.0
+и ajv-formats 3.0.1 для OpenAPI 3.1 и JSON Schema 2020-12. Проверка работает
+без Docker; зависимости устанавливаются общим `npm ci`. `make test-contract`
+проверяет реальные HTTP-ответы и исполняемые примеры из
+[api-examples.json](api-examples.json), включая JSON-строку геометрии, заголовки
+и Security. Контур игнорирует `.env` и внешние DB/TEST_DB; credentials временные.
+При изменении API обновляй контракт и соответствующие сценарии вместе.
+[Описание API и ручные примеры](api.md).

@@ -1,0 +1,20 @@
+{
+  "description": "Executable requests against an isolated demo instance. ${id} comes from the successful create response; credentials and CSRF are supplied only at runtime.",
+  "cases": [
+    {"name":"read-points","method":"GET","path":"/api/v1/osm/points?bbox=35.3,52.3,35.4,52.4&zoom=14","status":200,"nonempty":true},
+    {"name":"read-roads","method":"GET","path":"/api/v1/osm/roads?bbox=35.3,52.3,35.4,52.4&zoom=14","status":200,"nonempty":true},
+    {"name":"read-polygons","method":"GET","path":"/api/v1/osm/polygons?bbox=35.3,52.3,35.4,52.4&zoom=14","status":200,"nonempty":true},
+    {"name":"bad-viewport","method":"GET","path":"/api/v1/osm/roads?bbox=bad","status":400,"code":"invalid_spatial_query"},
+    {"name":"distance","method":"POST","path":"/api/v1/osm/distances","body":{"points":[[0,0],[1,0]]},"status":200,"distance":111319.49079327357},
+    {"name":"bad-distance","method":"POST","path":"/api/v1/osm/distances","body":{"points":[[0,0]]},"invalidRequest":true,"status":400,"code":"invalid_distance_request"},
+    {"name":"strict-json","method":"POST","path":"/api/v1/osm/distances","body":{"points":[["0",0],[1,0]]},"invalidRequest":true,"status":400,"code":"invalid_request"},
+    {"name":"no-csrf","method":"POST","path":"/api/v1/osm/points/add","body":[{"name":"Контракт","lat":52.34,"lng":35.35}],"status":403,"code":"invalid_csrf"},
+    {"name":"anonymous-write","method":"POST","path":"/api/v1/osm/points/add","csrf":true,"body":[{"name":"Контракт","lat":52.34,"lng":35.35}],"status":401,"code":"authentication_required"},
+    {"name":"create","method":"POST","path":"/api/v1/osm/points/add","editor":true,"csrf":true,"body":[{"name":"Контракт","lat":52.34,"lng":35.35}],"status":201,"captureId":true},
+    {"name":"bad-create","method":"POST","path":"/api/v1/osm/points/add","editor":true,"csrf":true,"body":[],"invalidRequest":true,"status":400,"code":"invalid_point_batch"},
+    {"name":"bad-delete","method":"DELETE","path":"/api/v1/osm/points/user:bad","editor":true,"csrf":true,"status":400,"code":"invalid_point_id"},
+    {"name":"readonly-osm","method":"DELETE","path":"/api/v1/osm/points/osm:2469931302","editor":true,"csrf":true,"status":403,"code":"read_only_point"},
+    {"name":"delete","method":"DELETE","path":"/api/v1/osm/points/${id}","editor":true,"csrf":true,"status":204},
+    {"name":"delete-again","method":"DELETE","path":"/api/v1/osm/points/${id}","editor":true,"csrf":true,"status":404,"code":"point_not_found"}
+  ]
+}

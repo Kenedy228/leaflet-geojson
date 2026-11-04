@@ -13,8 +13,9 @@ make ci
 ```
 
 `make ci` — полный набор: lint/формат, strict Svelte/TypeScript, Vitest, CLI,
-backend с настоящим PostGIS и Flyway, Vite/JAR, Chromium против этого JAR.
-`make verify` не включает Chromium; `make test-frontend` не требует Docker.
+backend с настоящим PostGIS и Flyway, Vite/JAR, HTTP contract, process diagnostics
+и Chromium против JAR.
+`make verify` не включает отдельные HTTP contract/process/Chromium runners; `make test-frontend` не требует Docker.
 Для focused backend-проверки: `make test MAVEN_ARGS='-B -ntp -Dtest=SpatialApiTests'`.
 Дополнительный `-Dmaven.repo.local=...` задаёт только cache Maven.
 
@@ -97,3 +98,13 @@ assertions, а не заменяют обычный зелёный прогон.
 Chromium и axe проверяют конкретные пользовательские сценарии. Полный аудит WCAG,
 кроссбраузерная матрица, нагрузочная проверка, внешний tile-сервис и импорт
 произвольного OSM-дампа в эти проверки не входят.
+
+## Согласованность OpenAPI
+
+`make check-openapi` проверяет структуру OpenAPI 3.1 и schema-примеры без БД.
+`make test-contract` проверяет [исполняемые примеры](api-examples.json) на
+собственном PostGIS/JAR, включая реальную сессию/CSRF и тело ответа против
+канонической схемы. Встроенные отрицательные проверки временной копии контракта
+должны отвергать несовместимые схему/статус, иначе зелёный checker не доказывает
+чувствительность к drift. Это не замена независимым эталонам или транзакционным
+проверкам выше. [Сценарии и границы](api.md).
