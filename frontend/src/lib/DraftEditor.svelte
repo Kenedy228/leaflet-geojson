@@ -19,7 +19,7 @@
     ><input
       type="checkbox"
       checked={model.addMode}
-      disabled={!model.access.can_edit}
+      disabled={!model.canEdit}
       onchange={(event) => model.setAddMode(event.currentTarget.checked)}
     />Добавлять точки на карту</label
   >
@@ -75,7 +75,7 @@
     {#if model.drafts.length}<button
         class="add-point-save primary"
         type="button"
-        disabled={!model.access.can_edit || model.savePending}
+        disabled={!model.canEdit || model.savePending}
         onclick={() => void model.save()}
         >{model.savePending
           ? "Сохранение…"

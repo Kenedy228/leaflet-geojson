@@ -166,7 +166,7 @@ test("deleting a point removed by another client reports actual404", async (t) =
   assert.equal(await page.locator(".delete-points-control").isEnabled(), false);
 });
 
-test("logout preserves drafts and forbids a later write with the expired session", async (t) => {
+test("logout clears editor artifacts and forbids a later write with the expired session", async (t) => {
   const { context, page } = await editor(browser, t);
   await drafts(page, ["Черновик после выхода"]);
   const token = await (
@@ -174,11 +174,9 @@ test("logout preserves drafts and forbids a later write with the expired session
   ).json();
   await page.locator(".access-logout").click();
   await page.locator(".access-login").waitFor();
-  assert.equal(
-    await page.locator(".change-add-point-name input").inputValue(),
-    "Черновик после выхода",
-  );
-  assert.equal(await page.locator(".add-point-save").isDisabled(), true);
+  assert.equal(await page.locator(".change-add-point-name").count(), 0);
+  assert.equal(await page.locator("[data-draft-id]").count(), 0);
+  assert.equal(await page.locator(".add-point-save").count(), 0);
   const denied = await context.request.post(
     baseURL + "/api/v1/osm/points/add",
     {

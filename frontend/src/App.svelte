@@ -1,16 +1,36 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { AppModel } from "./lib/model.svelte";
   import LeafletMap from "./lib/LeafletMap.svelte";
   import LayerControls from "./lib/LayerControls.svelte";
   import DraftEditor from "./lib/DraftEditor.svelte";
   import DistancePanel from "./lib/DistancePanel.svelte";
   const model = new AppModel();
+  let loginLink = $state.raw<HTMLAnchorElement | undefined>(undefined);
+  let logoutButton = $state.raw<HTMLButtonElement | undefined>(undefined);
+  async function leaveEditor() {
+    const trigger = logoutButton;
+    await model.logout();
+    await tick();
+    if (
+      document.activeElement === document.body ||
+      document.activeElement === trigger
+    ) {
+      (model.logoutFailed ? logoutButton : loginLink)?.focus();
+    }
+  }
   onMount(() => {
     void model.refreshSession().catch(() => {});
     return () => model.destroy();
   });
 </script>
+
+<svelte:window onfocus={() => void model.recheckSession()} />
+<svelte:document
+  onvisibilitychange={() => {
+    if (document.visibilityState === "visible") void model.recheckSession();
+  }}
+/>
 
 <svelte:head
   ><title>Геоатлас — интерактивная карта</title><meta
@@ -34,50 +54,60 @@
     <section class="access-panel" aria-label="Доступ редактора">
       <p class="eyebrow">Рабочее пространство</p>
       <p class="access-status" role="status">
-        {model.accessError ||
-          (model.access.can_edit
-            ? "Вы вошли как редактор общих точек."
-            : model.access.editing_enabled
-              ? "Просмотр. Для изменения точек войдите как редактор."
-              : "Режим просмотра: запись отключена на сервере.")}
+        {model.accessPending
+          ? "Завершение сеанса редактора…"
+          : model.accessError ||
+            (model.canEdit
+              ? "Вы вошли как редактор общих точек."
+              : model.access.editing_enabled
+                ? "Просмотр. Для изменения точек войдите как редактор."
+                : "Режим просмотра: запись отключена на сервере.")}
       </p>
-      {#if model.accessError}<button
+      {#if model.accessError && !model.logoutFailed}<button
           type="button"
           disabled={model.accessPending}
-          onclick={() => void model.refreshSession().catch(() => {})}
-          >Проверить доступ</button
+          onclick={() => void model.recheckSession()}>Проверить доступ</button
         >{/if}
-      {#if model.access.editing_enabled && !model.access.can_edit}<a
+      {#if model.access.editing_enabled && !model.canEdit && !model.accessPending && !model.logoutFailed}<a
           class="access-login"
+          bind:this={loginLink}
           href="/login">Войти как редактор</a
         >{/if}
-      {#if model.access.can_edit}<button
+      {#if model.canEdit || model.accessPending || model.logoutFailed}<button
           class="access-logout"
+          bind:this={logoutButton}
           type="button"
           disabled={model.accessPending}
-          onclick={() => void model.logout()}>Выйти</button
+          onclick={() => void leaveEditor()}
+          >{model.accessPending
+            ? "Выход…"
+            : model.logoutFailed
+              ? "Повторить выход"
+              : "Выйти"}</button
         >{/if}
     </section>
     <LayerControls {model} />
     <DistancePanel {model} />
-    <DraftEditor {model} />
-    <section aria-labelledby="delete-heading">
-      <h2 id="delete-heading">Выбранная точка</h2>
-      <p>
-        {model.deleteTarget
-          ? model.deleteTarget.name
-          : "Нажмите на пользовательскую точку вне режима расчёта."}
-      </p>
-      <button
-        class="delete-points-control danger"
-        type="button"
-        disabled={!model.deleteTarget ||
-          !model.access.can_edit ||
-          model.deletePending}
-        onclick={() => void model.deleteSelected()}>Удалить точку</button
-      >
-      <p class="delete-status" role="status">{model.deleteStatus}</p>
-    </section>
+    {#if model.canEdit}
+      <DraftEditor {model} />
+      <section aria-labelledby="delete-heading">
+        <h2 id="delete-heading">Выбранная точка</h2>
+        <p>
+          {model.deleteTarget
+            ? model.deleteTarget.name
+            : "Нажмите на пользовательскую точку вне режима расчёта."}
+        </p>
+        <button
+          class="delete-points-control danger"
+          type="button"
+          disabled={!model.deleteTarget ||
+            !model.canEdit ||
+            model.deletePending}
+          onclick={() => void model.deleteSelected()}>Удалить точку</button
+        >
+        <p class="delete-status" role="status">{model.deleteStatus}</p>
+      </section>
+    {/if}
     <footer>Учебный проект · Данные © OpenStreetMap contributors</footer>
   </aside>
   <section class="map-panel" aria-label="Интерактивная карта">
