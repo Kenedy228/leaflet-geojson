@@ -2,23 +2,20 @@
 
 import os
 from pathlib import Path
-import re
 import secrets
 import subprocess
 import sys
 import tempfile
-import time
-import urllib.error
-import urllib.request
 
 import manage
+from application_probe import wait_application
 
 
 def main() -> None:
     env = dict(os.environ)
     # Never inherit a user's database, editor, profile or listener configuration.
     for key in list(env):
-        if key.startswith(("DB_", "TEST_DB_", "SPRING_", "FLYWAY_", "EDITOR_", "EDITING_", "SERVER_", "CORS_")):
+        if key.startswith(("DB_", "TEST_DB_", "SPRING_", "FLYWAY_", "EDITOR_", "EDITING_", "SERVER_", "CORS_", "MANAGEMENT_", "LOGGING_")):
             env.pop(key)
     for key in ("JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS"):
         env.pop(key, None)
@@ -39,23 +36,7 @@ def main() -> None:
                 process = subprocess.Popen([java, "-jar", str(manage.ROOT / "backend/target/gis-0.0.1-SNAPSHOT.jar"),
                                             "--server.port=0", "--server.address=127.0.0.1"],
                                            cwd=manage.ROOT, env=env, stdout=output, stderr=subprocess.STDOUT)
-                deadline = time.monotonic() + 90
-                base = None
-                while time.monotonic() < deadline:
-                    if process.poll() is not None:
-                        raise RuntimeError("Browser test application exited during startup")
-                    match = re.search(r"Tomcat started on port (\d+)", log.read_text())
-                    if match:
-                        base = f"http://127.0.0.1:{match.group(1)}"
-                        try:
-                            with urllib.request.urlopen(base + "/api/v1/session", timeout=2) as response:
-                                if response.status == 200:
-                                    break
-                        except (OSError, urllib.error.URLError):
-                            pass
-                    time.sleep(0.2)
-                else:
-                    raise RuntimeError("Browser test application startup timed out")
+                base = wait_application(process, log)
                 # Test-only SQL fault: never install this constraint in production migrations.
                 manage.compose(env, "exec", "-T", "test-db", "psql", "-U", "gis", "-d", "gis_test",
                                "-v", "ON_ERROR_STOP=1", input="""

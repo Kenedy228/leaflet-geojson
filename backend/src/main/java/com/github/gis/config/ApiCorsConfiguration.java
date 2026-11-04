@@ -55,6 +55,7 @@ public class ApiCorsConfiguration implements WebMvcConfigurer {
           .allowedOrigins(origins.toArray(String[]::new))
           .allowedMethods("GET", "POST", "DELETE")
           .allowedHeaders("Content-Type")
+          .exposedHeaders("X-Request-ID")
           .allowCredentials(false);
     }
   }

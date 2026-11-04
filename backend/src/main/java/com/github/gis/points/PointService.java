@@ -36,7 +36,7 @@ public class PointService {
     return spatial.points(SpatialQuery.world());
   }
 
-  @Transactional
+  @Transactional(timeout = 5)
   public List<Point> create(List<NewPoint> points) {
     if (points == null || points.isEmpty() || points.size() > 1000) {
       throw invalidBatch();
@@ -67,6 +67,7 @@ public class PointService {
     return created;
   }
 
+  @Transactional(timeout = 5)
   public void delete(String id) {
     if (id.startsWith("osm:")) {
       throw new ApiException(

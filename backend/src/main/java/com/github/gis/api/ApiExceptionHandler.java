@@ -1,9 +1,14 @@
 package com.github.gis.api;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.*;
+import org.springframework.transaction.CannotCreateTransactionException;
+import org.springframework.transaction.TransactionTimedOutException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
@@ -16,6 +21,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
       HttpHeaders headers,
       HttpStatusCode status,
       WebRequest request) {
+    // The superclass logs exception.toString() for committed responses using this subclass's
+    // application logger. Avoid that branch: exception text may contain submitted values.
+    if (request instanceof ServletWebRequest servletRequest
+        && servletRequest.getResponse() != null
+        && servletRequest.getResponse().isCommitted()) {
+      return null;
+    }
     var safeHeaders = new HttpHeaders();
     safeHeaders.putAll(headers);
     safeHeaders.setContentType(MediaType.APPLICATION_JSON);
@@ -29,16 +41,37 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     return response(exception.status(), exception.error());
   }
 
-  @ExceptionHandler(DataAccessResourceFailureException.class)
-  public ResponseEntity<Object> unavailable(DataAccessResourceFailureException exception) {
-    logger.error("API resource unavailable: " + exception.getClass().getSimpleName());
+  @ExceptionHandler({
+    DataAccessResourceFailureException.class,
+    CannotCreateTransactionException.class
+  })
+  public ResponseEntity<Object> unavailable(Exception exception) {
+    LoggerFactory.getLogger(ApiExceptionHandler.class)
+        .atWarn()
+        .addKeyValue("event", "request_failed")
+        .addKeyValue("reason", "database_unavailable")
+        .log("request_failed");
+    return response(HttpStatus.SERVICE_UNAVAILABLE, ApiError.forStatus(503));
+  }
+
+  @ExceptionHandler({QueryTimeoutException.class, TransactionTimedOutException.class})
+  public ResponseEntity<Object> timedOut(Exception exception) {
+    LoggerFactory.getLogger(ApiExceptionHandler.class)
+        .atWarn()
+        .addKeyValue("event", "request_failed")
+        .addKeyValue("reason", "database_timeout")
+        .log("request_failed");
     return response(HttpStatus.SERVICE_UNAVAILABLE, ApiError.forStatus(503));
   }
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<Object> unexpected(Exception exception) {
     // Exception text can contain SQL, connection details or submitted data.
-    logger.error("API failure: " + exception.getClass().getSimpleName());
+    LoggerFactory.getLogger(ApiExceptionHandler.class)
+        .atError()
+        .addKeyValue("event", "request_failed")
+        .addKeyValue("reason", "internal_error")
+        .log("request_failed");
     return response(HttpStatus.INTERNAL_SERVER_ERROR, ApiError.forStatus(500));
   }
 
