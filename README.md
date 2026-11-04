@@ -48,7 +48,7 @@ API URL в браузере — относительный `/api/v1/osm`, поэ
 frontend/    Svelte/TypeScript/Vite + Leaflet, Vitest и browser tests
 backend/     Spring Boot API, Flyway-миграции и интеграционные тесты
 infra/       Compose, локальные команды, документация геоданных и CLI-тесты
-docs/        Происхождение исходников и модель пользовательских точек
+docs/        Архитектура, модель данных, OpenAPI и эксплуатационные руководства
 AGENTS.md    Правила работы с репозиторием и Git workflow
 Makefile     Общие команды
 ```
@@ -62,10 +62,12 @@ make db-up         # Только локальная БД, ожидание heal
 make db-down       # Остановить БД, не удаляя volume
 make db-reset-demo # Восстановить только demo reference-данные, сохраняя user points
 make db-backup     # Приватная копия локальной БД в backups/
-make check         # Svelte/TypeScript, синтаксис Python и Git whitespace
+make check         # OpenAPI, Svelte/TypeScript, синтаксис Python и Git whitespace
 make test-frontend # Vitest-регрессии без БД
 make test-infra    # CLI unit-тесты без Docker
 make install-browser # Установить зависимости браузерных тестов и Chromium
+make check-openapi # OpenAPI и schema-примеры, без Docker
+make test-contract # Реальные HTTP-ответы против OpenAPI, свои PostGIS и JAR
 make test-diagnostics # Безопасные логи, probes, отказ БД и graceful shutdown
 make test-browser  # Popup/XSS и пакетное сохранение, отдельные PostGIS и приложение
 make test          # Все тесты, отдельный временный PostGIS создаётся автоматически
@@ -73,7 +75,7 @@ make verify        # Проверки, тесты и сборка JAR
 make lint          # ESLint frontend и браузерных тестов
 make format-check  # Prettier frontend и Spotless Java
 make format        # Применить форматирование
-make ci            # Lint, формат, verify, диагностика процесса и браузерные тесты
+make ci            # Lint, формат, verify, API-контракт, диагностика процесса и браузерные тесты
 make benchmark-spatial # Изолированные SQL/HTTP измерения и EXPLAIN
 make dev-frontend  # Vite с HMR и same-origin API proxy
 make build         # Vite build и JAR без запуска тестов
@@ -92,7 +94,7 @@ SQL перед `make verify` не требуется. Для внешнего т
 [Карта покрытия API/PostGIS/UI и численные эталоны](docs/testing.md).
 [Ограничения bbox/детализации и воспроизводимые измерения](docs/spatial-queries.md).
 
-[Контракт ошибок и валидации](docs/api-errors.md), [OpenAPI изменённых маршрутов](docs/openapi.json).
+[Контракт ошибок и валидации](docs/api-errors.md), [OpenAPI](docs/openapi.json).
 
 Собранный JAR — `backend/target/gis-0.0.1-SNAPSHOT.jar`. При прямом `java -jar`
 параметры `DB_*` нужно предоставить окружением процесса: JVM сама `.env` не читает.
@@ -137,3 +139,7 @@ Demo включает 3 точки, 2 дороги и 2 полигона из р
 [Происхождение кода](docs/migration.md), [контракт точек](docs/user-points.md).
 
 Проверки CI и обновление зависимостей: [docs/ci.md](docs/ci.md).
+
+Техническое описание: [архитектура и потоки](docs/architecture.md),
+[модель данных и миграции](docs/data-model.md), [HTTP-примеры](docs/api.md),
+[критерии готовности и ограничения](docs/readiness.md).

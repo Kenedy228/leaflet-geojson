@@ -4,7 +4,7 @@
 MAVEN_ARGS ?=
 export MAVEN_ARGS BACKUP_FILE CONFIRM_RESTORE
 
-.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra install-browser test-browser test-diagnostics test verify lint format-check format ci dev-frontend benchmark-spatial
+.PHONY: help init-env init-editor dev run db-up db-down db-seed db-reset-demo db-backup db-restore check build test-frontend test-infra install-browser test-browser test-diagnostics check-openapi test-contract test verify lint format-check format ci dev-frontend benchmark-spatial
 
 help:
 	@printf '%s\n' \
@@ -17,7 +17,7 @@ help:
 	  'make db-seed / db-reset-demo  Restore only the licensed demo reference rows' \
 	  'make db-backup  Save local DB to a private backups/*.dump file' \
 	  'make db-restore BACKUP_FILE=... CONFIRM_RESTORE=YES  Restore a trusted backup' \
-	  'make check   Check Svelte/TypeScript, Python syntax and Git whitespace' \
+	  'make check   Check OpenAPI, Svelte/TypeScript, Python syntax and Git whitespace' \
 	  'make lint / format-check  Check frontend lint and frontend/Java formatting' \
 	  'make format  Apply frontend and Java formatting' \
 	  'make ci      Run all mandatory checks including Chromium' \
@@ -25,6 +25,8 @@ help:
 	  'make build   Build the application JAR without running tests' \
 	  'make test-frontend  Run frontend Vitest regressions' \
 	  'make install-browser  Install pinned browser test dependencies and Chromium' \
+	  'make check-openapi  Validate OpenAPI and executable examples without Docker' \
+	  'make test-contract  Compare real HTTP responses with OpenAPI on disposable PostGIS' \
 	  'make test-diagnostics  Check safe logs, health, DB failure and graceful shutdown' \
 	  'make test-browser  Run popup and batch-save regressions on disposable PostGIS and app' \
 	  'make test    Run tests using a disposable, isolated PostGIS' \
@@ -60,9 +62,9 @@ db-backup:
 db-restore:
 	python3 infra/manage.py restore
 
-check:
+check: check-openapi
 	npm --prefix frontend run check
-	python3 -m py_compile infra/manage.py infra/browser_test.py infra/application_probe.py infra/diagnostics_test.py
+	python3 -m py_compile infra/manage.py infra/browser_test.py infra/application_probe.py infra/diagnostics_test.py infra/api_contract_test.py
 	git diff --check
 
 build:
@@ -83,6 +85,12 @@ test-browser:
 
 test-diagnostics:
 	python3 infra/diagnostics_test.py
+
+check-openapi:
+	npm --prefix frontend run check:openapi
+
+test-contract:
+	python3 infra/api_contract_test.py
 
 test: test-frontend test-infra
 	python3 infra/manage.py test
@@ -105,6 +113,7 @@ format:
 ci:
 	$(MAKE) lint format-check
 	$(MAKE) verify
+	$(MAKE) test-contract
 	$(MAKE) test-diagnostics
 	$(MAKE) test-browser
 

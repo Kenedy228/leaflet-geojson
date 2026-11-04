@@ -32,10 +32,12 @@ Backend импортирован снимком из https://github.com/Kenedy22
 не означает, что запросы реализованы через ORM.
 
 Стек frontend: Svelte 5 + TypeScript в строгом режиме + Vite.
-Дальнейшая цель: полные архитектура, модель данных и OpenAPI в `docs/`.
+Архитектура, модель данных, сценарии и критерии готовности описаны в `docs/`: см.
+[architecture.md](docs/architecture.md), [data-model.md](docs/data-model.md),
+[api.md](docs/api.md) и [readiness.md](docs/readiness.md).
 Flyway уже содержит V1/V2 пользовательской модели и V3 bootstrap OSM, а `infra/`
-поднимает локальную БД. Svelte уже реализован; полный OpenAPI ещё не завершён. CI — `.github/workflows/ci.yml`.
-Контракт изменённых маршрутов точек/distance/session уже находится в
+поднимает локальную БД. Svelte и полный OpenAPI реализованы. CI — `.github/workflows/ci.yml`.
+Канонический контракт геослоёв, точек/distance/session, login/logout и health находится в
 [openapi.json](docs/openapi.json); расширяй его, не создавай параллельный контракт.
 Не выдавай планируемое устройство за реализованное. Сохраняй выбранный стек;
 его замена требует согласования с пользователем.
@@ -70,10 +72,12 @@ make run           # Frontend/API с .env/окружением, без вклю�
 make db-up         # Только локальный PostGIS; db-down сохраняет volume
 make db-reset-demo # Атомарно восстановить demo reference-строки, не user points
 make db-backup     # Приватная custom-format копия локальной БД
-make check         # Svelte/TypeScript, Python syntax и git diff --check
+make check         # OpenAPI, Svelte/TypeScript, Python syntax и git diff --check
 make test-frontend # Vitest transport/state/lifecycle, без Docker
 make test-infra    # CLI unit-тесты, без Docker
 make install-browser # Установить закреплённые зависимости браузерных тестов и Chromium
+make check-openapi # Структура OpenAPI и schema-примеры, без Docker
+make test-contract # Реальные HTTP-ответы против OpenAPI: свои PostGIS и JAR
 make test-diagnostics # Безопасные логи, probes, отказ БД и graceful shutdown
 make test-browser  # Popup/XSS и пакетное сохранение: свой временный PostGIS и приложение
 make test          # Все тесты; свой временный PostGIS создаётся и удаляется автоматически
@@ -81,7 +85,7 @@ make verify        # Проверки, тесты и JAR
 make lint          # ESLint frontend и браузерных тестов
 make format-check  # Prettier frontend и Spotless Java
 make format        # Применить форматирование
-make ci            # Lint, формат, verify, диагностика процесса и браузерные тесты
+make ci            # Lint, формат, verify, API-контракт, диагностика процесса и браузерные тесты
 make benchmark-spatial # Synthetic dataset, SQL/HTTP/EXPLAIN; отдельная tmpfs БД
 make dev-frontend  # Vite HMR с API proxy; см. docs/frontend.md
 make build         # Vite build и JAR
@@ -109,7 +113,7 @@ Restore заменяет БД: останови backend, проверь файл
 Не удаляй volume или `app` ради сброса demo.
 
 После `npm --prefix frontend ci --ignore-scripts` доступны `dev`, `build`, `check`,
-`lint`, `test`. `make ci` включает типы, lint/format, Vitest, backend, process diagnostics и Chromium.
+`lint`, `test`. `make ci` включает типы, lint/format, Vitest, backend, HTTP contract, process diagnostics и Chromium.
 `make test-browser` обязателен для изменений UI; обычный `make verify` его не включает.
 Maven lifecycle сам выполняет npm ci/build; нужны Node/npm и сеть при первом запуске.
 В JAR копируется только dist; старый static output очищается на initialize.
@@ -155,6 +159,9 @@ Viewport bbox/zoom, лимиты 500 объектов и 5000/20000 вершин
   bootstrap редактора — в [access-control.md](docs/access-control.md).
 - Изменения API согласовывай с клиентом и OpenAPI. Валидируй входные данные,
   определяй ошибки HTTP и не возвращай успешное сохранение при отказе записи.
+  `make check` включает `check-openapi`; изменённый HTTP-контракт дополнительно
+  проверяй `make test-contract` на реальном изолированном окружении. Примеры
+  поддерживай в `docs/api-examples.json`; проверки не заменяют предметные тесты.
   SQL выполняй с параметрами; внутренние ошибки и секреты не должны попадать в ответ.
 - Диагностика — безопасные JSON events и серверный `X-Request-ID`, тот же UUID
   в `request_id` журнала. Не журналируй raw exception, SQL, URL/query, тела,

@@ -46,7 +46,7 @@ jobs:
           node --version
           python3 --version
           docker compose version
-      - name: Lint, types, format, Vitest, PostGIS, process diagnostics and browser checks; build JAR
+      - name: Lint, types, format, Vitest, PostGIS, API contract, process diagnostics and browser checks; build JAR
         run: make ci
       - name: Test reports
         if: always()
