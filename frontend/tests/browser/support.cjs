@@ -101,12 +101,18 @@ async function save(page) {
   );
   await page.locator(".add-point-save").click();
   const result = await response;
-  await assertEventually(async () => {
-    const rows = await page.locator(".change-add-point-name").count();
-    assert.ok(
-      rows === 0 || !(await page.locator(".add-point-save").isDisabled()),
-    );
-  });
+  // Read one DOM snapshot: successful persistence can remove the button between awaits.
+  await page.waitForFunction(
+    () => {
+      const rows = document.querySelectorAll(".change-add-point-name").length;
+      const button = document.querySelector(".add-point-save");
+      return (
+        rows === 0 || (button instanceof HTMLButtonElement && !button.disabled)
+      );
+    },
+    undefined,
+    { timeout: 10000 },
+  );
   return result;
 }
 async function points(page) {
