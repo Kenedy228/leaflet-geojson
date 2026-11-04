@@ -4,6 +4,53 @@
 Успешный запуск процесса, корректность геометрии и успешный CI — разные проверки;
 каждую нужно подтвердить отдельно. Порядок работ ведётся в [roadmap #20](https://github.com/Kenedy228/leaflet-geojson/issues/20).
 
+## Сверка roadmap на 2026-11-04
+
+Функциональный срез — `stage` после [PR #38](https://github.com/Kenedy228/leaflet-geojson/pull/38),
+commit `52c24d3f97660443fcacf3e829dacfd52d97d8f5`. Все 22 дочерние задачи
+roadmap закрыты: 16 P1 и 6 P2. Это состояние указанного среза, а не обещание
+отсутствия любых будущих дефектов.
+
+| Область | Выполненные issues | Реализация и проверяемое подтверждение |
+| --- | --- | --- |
+| Монорепозиторий, модель и окружение | #1, #2, #3, #7, #23 | [PR #24](https://github.com/Kenedy228/leaflet-geojson/pull/24)–[#27](https://github.com/Kenedy228/leaflet-geojson/pull/27), [данные/миграции](data-model.md), [infra](../infra/README.md) |
+| Валидация, запись, права и безопасный вывод | #4, #5, #6, #8 | [PR #28](https://github.com/Kenedy228/leaflet-geojson/pull/28)–[#31](https://github.com/Kenedy228/leaflet-geojson/pull/31), [тесты API/PostGIS и XSS](testing.md) |
+| Svelte, состояние, доступность и атрибуция | #10, #11, #12, #13, #14, #15, #21 | [PR #33](https://github.com/Kenedy228/leaflet-geojson/pull/33), [frontend](frontend.md), [Chromium-сценарии](browser-tests.md) |
+| Автоматические проверки и CI | #16, #17 | [PR #32](https://github.com/Kenedy228/leaflet-geojson/pull/32), [PR #34](https://github.com/Kenedy228/leaflet-geojson/pull/34), [CI](ci.md) |
+| Бюджеты пространственных запросов | #9 | [PR #35](https://github.com/Kenedy228/leaflet-geojson/pull/35), [лимиты и условия измерений](spatial-queries.md) |
+| Диагностика и завершение | #18 | [PR #36](https://github.com/Kenedy228/leaflet-geojson/pull/36), [probes, ошибки и timeouts](diagnostics.md) |
+| Контракт и оформление портфолио | #19, #22 | [PR #37](https://github.com/Kenedy228/leaflet-geojson/pull/37), [PR #38](https://github.com/Kenedy228/leaflet-geojson/pull/38), [README](../README.md), [демонстрация](demo.md), [MIT](../LICENSE) |
+
+Подтверждения среза:
+
+- [Полный CI merge-коммита stage](https://github.com/Kenedy228/leaflet-geojson/actions/runs/41775993162)
+  прошёл для `52c24d3f97660443fcacf3e829dacfd52d97d8f5`: 139 backend-, 32 frontend-,
+  4 CLI-теста, 44 Chromium-сценария, 15 исполняемых HTTP-примеров с дополнительными
+  auth/CSRF/CORS/probe-проверками, process diagnostics и JAR. Результаты сверены
+  по логу job. [CI PR #38](https://github.com/Kenedy228/leaflet-geojson/actions/runs/41771102346)
+  также прошёл; дерево merge совпадает с его проверенным деревом.
+- [Чистый checkout и новая demo-БД](demo.md#что-проверено-для-readme): запуск,
+  readonly/editor, создание → сохранение → reload → distance → удаление, сохранность
+  пользовательской точки после reset и перезапуска named volume. Caches Maven
+  были заполнены; проверка cold-cache установки всех пакетов не заявляется.
+- Сохранность UUID при замене reference-строки проверяется
+  [PointIdentityTests](../backend/src/test/java/com/github/gis/PointIdentityTests.java);
+  повторный seed и отказ менять чужой импорт — DemoDatasetTests. Полный внешний
+  PBF и запуск osm2pgsql в этой сверке не выполнялись. Порядок импорта/restore
+  остаётся отдельной [операторской процедурой](../infra/README.md).
+- Инвентаризация отслеживаемых путей не выявила `.env`, `*.dump`, `*.log`,
+  `*.pem`, `id_rsa` и `id_ed25519`. Это проверка имён публикуемых файлов,
+  а не полноценный secret scan содержимого или всей истории Git. Runtime-реквизиты
+  вынесены в серверное окружение в #3; исторический пароль одноразовой demo-БД
+  разобран в [infra](../infra/README.md#cors).
+
+При этой сверке default branch `main` ещё содержала исходный плоский prototype.
+Поэтому README явно клонирует `stage`. Следующий шаг публикации монорепозитория
+в основной ветке — отдельный release PR `stage → main` с review и обязательным CI;
+это перенос исходников в GitHub, а не публичный deployment приложения.
+Dependabot начнёт читать конфигурацию после её появления в default branch,
+как описано в [ci.md](ci.md). Слияние release не выполняется автоматически.
+
 ## Проверяемая готовность
 
 | Критерий | Как подтвердить |
